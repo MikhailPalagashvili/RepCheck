@@ -33,21 +33,10 @@ object AppConfig {
             idleTimeoutMs = idleTimeout
         )
     }
-
-    fun appEnv(): String {
-        val config = com.typesafe.config.ConfigFactory.load()
-        return config.getStringOrNull("app.env")
-            ?: System.getenv("APP_ENV")
-            ?: "dev"
-    }
 }
 
-// Helpers to read optional values from Typesafe Config without throwing
 private fun com.typesafe.config.Config.getIntOrNull(path: String): Int? =
     if (this.hasPath(path)) this.getInt(path) else null
 
 private fun com.typesafe.config.Config.getLongOrNull(path: String): Long? =
     if (this.hasPath(path)) this.getLong(path) else null
-
-private fun com.typesafe.config.Config.getStringOrNull(path: String): String? =
-    if (this.hasPath(path)) this.getString(path) else null
