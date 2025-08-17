@@ -1,6 +1,6 @@
 package com.repcheck.db
 
-import com.repcheck.config.DatabaseConfiguration
+import com.repcheck.config.DatabaseConfig
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.slf4j.LoggerFactory
@@ -13,7 +13,7 @@ object Database {
     lateinit var dataSource: DataSource
         private set
 
-    fun initialize(configuration: DatabaseConfiguration) {
+    fun initialize(configuration: DatabaseConfig) {
         val hc = HikariConfig().apply {
             jdbcUrl = configuration.url
             username = configuration.user

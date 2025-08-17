@@ -1,6 +1,6 @@
 package com.repcheck.config
 
-data class DatabaseConfiguration(
+data class DatabaseConfig(
     val url: String,
     val user: String,
     val password: String,
@@ -10,8 +10,8 @@ data class DatabaseConfiguration(
     val idleTimeoutMs: Long = 10 * 60 * 1000  // 10m
 )
 
-object AppConfiguration {
-    fun database(): DatabaseConfiguration {
+object AppConfig {
+    fun databaseConfig(): DatabaseConfig {
         val config = com.typesafe.config.ConfigFactory.load()
 
         val url = config.getString("db.url")
@@ -23,7 +23,7 @@ object AppConfiguration {
         val maxLifetime = config.getLongOrNull("db.pool.maxLifetimeMs") ?: (30 * 60 * 1000L)
         val idleTimeout = config.getLongOrNull("db.pool.idleTimeoutMs") ?: (10 * 60 * 1000L)
 
-        return DatabaseConfiguration(
+        return DatabaseConfig(
             url = url,
             user = user,
             password = password,
@@ -33,6 +33,13 @@ object AppConfiguration {
             idleTimeoutMs = idleTimeout
         )
     }
+
+    fun appEnv(): String {
+        val config = com.typesafe.config.ConfigFactory.load()
+        return config.getStringOrNull("app.env")
+            ?: System.getenv("APP_ENV")
+            ?: "dev"
+    }
 }
 
 // Helpers to read optional values from Typesafe Config without throwing
@@ -41,3 +48,6 @@ private fun com.typesafe.config.Config.getIntOrNull(path: String): Int? =
 
 private fun com.typesafe.config.Config.getLongOrNull(path: String): Long? =
     if (this.hasPath(path)) this.getLong(path) else null
+
+private fun com.typesafe.config.Config.getStringOrNull(path: String): String? =
+    if (this.hasPath(path)) this.getString(path) else null
