@@ -32,6 +32,17 @@ object Database {
         )
     }
 
+    /** Quick connectivity check used by readiness probes. */
+    fun ping(): Boolean = try {
+        dataSource.connection.use { conn ->
+            conn.createStatement().use { st -> st.execute("SELECT 1") }
+        }
+        true
+    } catch (e: Exception) {
+        log.warn("Database ping failed", e)
+        false
+    }
+
     private fun sanitizeUrl(url: String): String =
         url.replace(Regex("://([^:@/]+):([^@/]+)@"), "://****:****@")
 }
