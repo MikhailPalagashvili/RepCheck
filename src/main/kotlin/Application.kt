@@ -1,6 +1,6 @@
 package com.repcheck
 
-import com.repcheck.config.AppConfiguration.databaseConfiguration
+import com.repcheck.config.AppConfiguration
 import com.repcheck.db.Database
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -31,7 +31,7 @@ fun main() {
 }
 
 fun Application.module() {
-    Database.initialize(databaseConfiguration())
+    Database.initialize(AppConfiguration.database())
     runFlywayMigrations()
     installPlugins()
     routing {

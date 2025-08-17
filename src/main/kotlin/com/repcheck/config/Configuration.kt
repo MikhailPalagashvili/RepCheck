@@ -11,7 +11,7 @@ data class DatabaseConfiguration(
 )
 
 object AppConfiguration {
-    fun databaseConfiguration(): DatabaseConfiguration {
+    fun database(): DatabaseConfiguration {
         val config = com.typesafe.config.ConfigFactory.load()
 
         val url = config.getString("db.url")
