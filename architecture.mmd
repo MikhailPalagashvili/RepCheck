@@ -1,0 +1,65 @@
+flowchart TB
+%% Components
+    subgraph Mobile_App[Mobile App - KMM]
+        A1[Workout and Set Logging]
+        A2[Video Recording]
+        A3[On-device ML - MediaPipe and TFLite]
+        A4[Offline Storage - SQLite]
+        A5[Sync Manager]
+    end
+
+    subgraph Backend[Ktor Backend API]
+        B0[API Gateway and Routing]
+        B1[Auth Service - JWT and Refresh]
+        B2[Workout Service]
+        B3[Video Service - Presigned S3 URLs and Metadata]
+        B4[PR Service]
+    end
+
+    subgraph Infra[Core Infra]
+        DB[(PostgreSQL)]
+        S3[(S3 - Video Objects)]
+        Q[[Async Queue - SQS or RabbitMQ]]
+    end
+
+    subgraph AI[AI Video Service]
+        P1[Preprocess - resize and frames]
+        P2[Inference - Depth, Bar Path, Symmetry]
+        P3[Store Feedback JSON]
+    end
+
+    subgraph Observability[Ops]
+        L1[Logs - Logback and ELK]
+        M1[Metrics - Prometheus and Grafana]
+    end
+
+%% Mobile to Backend
+    A5 -->|Sync Workouts, Sets, Videos| B0
+    B0 --> B1
+    B0 --> B2
+    B0 --> B3
+    B0 --> B4
+
+%% Backend to DB
+    B1 --> DB
+    B2 --> DB
+    B3 --> DB
+    B4 --> DB
+
+%% Video upload path
+    B3 -->|Generate Presigned URL| S3
+    A2 -->|Direct Upload via Presigned URL| S3
+    B3 -->|Enqueue AI Job| Q
+
+%% AI Service
+    Q --> P1 --> P2 --> P3
+    P3 -->|Write ai_feedback| DB
+
+%% Client fetches feedback
+    A1 -->|Poll or Fetch Feedback| B0 --> DB
+
+%% Observability
+    B0 --> L1
+    B0 --> M1
+    AI --> L1
+    AI --> M1
