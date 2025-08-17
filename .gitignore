@@ -1,0 +1,28 @@
+# Build outputs
+/target/
+/out/
+/build/
+
+# Gradle/Maven local caches
+/.gradle/
+/.mvn/wrapper/
+.mvn/
+
+# IDE files
+/.idea/
+*.iml
+
+# OS junk
+.DS_Store
+
+# Logs
+*.log
+
+# Local env/config (do not commit secrets)
+.env
+.env.*
+*.local
+
+# Kotlin/Java tooling
+hs_err_pid*
+replay_pid*
