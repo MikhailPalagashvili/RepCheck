@@ -8,9 +8,9 @@ import com.repcheck.features.auth.JwtProvider
 import com.repcheck.features.auth.authRoutes
 import com.repcheck.features.ratelimit.RateLimit
 import com.repcheck.features.ratelimit.RateLimitConfig
-import com.repcheck.web.plugins.installMonitoring
-import com.repcheck.web.plugins.installSerialization
-import com.repcheck.web.routes.healthRoutes
+import com.repcheck.infrastructure.web.plugins.installMonitoring
+import com.repcheck.infrastructure.web.plugins.installSerialization
+import com.repcheck.infrastructure.web.routes.healthRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*

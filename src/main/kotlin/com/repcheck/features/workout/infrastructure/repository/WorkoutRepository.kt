@@ -5,18 +5,15 @@ import com.repcheck.features.workout.domain.model.WorkoutSet
 import com.repcheck.features.workout.domain.repository.WorkoutRepository
 import com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import com.repcheck.features.workout.infrastructure.table.Workouts
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 
 class ExposedWorkoutRepository : WorkoutRepository {
     private fun rowToWorkout(row: ResultRow): Workout = Workout(
-        id = row[Workouts.id],
+        id = row[Workouts.id].value,
         userId = row[Workouts.userId],
         startTime = row[Workouts.startTime].toEpochMilli(),
         endTime = row[Workouts.endTime]?.toEpochMilli(),
@@ -26,7 +23,7 @@ class ExposedWorkoutRepository : WorkoutRepository {
     )
 
     private fun rowToWorkoutSet(row: ResultRow): WorkoutSet = WorkoutSet(
-        id = row[WorkoutSets.id],
+        id = row[WorkoutSets.id].value,
         workoutId = row[WorkoutSets.workoutId],
         liftId = row[WorkoutSets.liftId],
         weight = row[WorkoutSets.weight],
@@ -43,11 +40,11 @@ class ExposedWorkoutRepository : WorkoutRepository {
         startTimeMillis: Long,
         notes: String?,
     ): Workout = transaction {
-        val id = Workouts.insert { st ->
-            st[Workouts.userId] = userId
-            st[Workouts.startTime] = Instant.ofEpochMilli(startTimeMillis)
-            st[Workouts.notes] = notes
-        }[Workouts.id]
+        val id = Workouts.insertAndGetId { workout ->
+            workout[Workouts.userId] = userId
+            workout[Workouts.startTime] = Instant.ofEpochMilli(startTimeMillis)
+            workout[Workouts.notes] = notes
+        }
 
         Workouts.select { Workouts.id eq id }
             .single()
@@ -63,25 +60,25 @@ class ExposedWorkoutRepository : WorkoutRepository {
         notes: String?,
         completedAtMillis: Long,
     ): WorkoutSet = transaction {
-        val id = WorkoutSets.insert { st ->
-            st[WorkoutSets.workoutId] = workoutId
-            st[WorkoutSets.liftId] = liftId
-            st[WorkoutSets.weight] = weight
-            st[WorkoutSets.reps] = reps
-            st[WorkoutSets.rpe] = rpe
-            st[WorkoutSets.notes] = notes
-            st[WorkoutSets.completedAt] = Instant.ofEpochMilli(completedAtMillis)
-        }[WorkoutSets.id]
+        val id = WorkoutSets.insertAndGetId { set ->
+            set[WorkoutSets.workoutId] = workoutId
+            set[WorkoutSets.liftId] = liftId
+            set[WorkoutSets.weight] = weight
+            set[WorkoutSets.reps] = reps
+            set[WorkoutSets.rpe] = rpe
+            set[WorkoutSets.notes] = notes
+            set[WorkoutSets.completedAt] = Instant.ofEpochMilli(completedAtMillis)
+        }
 
         WorkoutSets.select { WorkoutSets.id eq id }
+            .map(::rowToWorkoutSet)
             .single()
-            .let(::rowToWorkoutSet)
     }
 
     override fun listWorkoutsByUser(userId: Long, limit: Int, offset: Long): List<Workout> = transaction {
         Workouts.select { Workouts.userId eq userId }
-            .orderBy(Workouts.createdAt to SortOrder.DESC)
-            .limit(limit, offset)
+            .orderBy(Workouts.startTime to SortOrder.DESC)
+            .limit(n = limit, offset = offset)
             .map(::rowToWorkout)
     }
 
@@ -92,6 +89,6 @@ class ExposedWorkoutRepository : WorkoutRepository {
     }
 
     override fun deleteWorkout(workoutId: Long): Boolean = transaction {
-        Workouts.deleteWhere { Workouts.id eq workoutId } > 0
+        Workouts.deleteWhere { Workouts.id eq EntityID(workoutId, Workouts) } > 0
     }
 }

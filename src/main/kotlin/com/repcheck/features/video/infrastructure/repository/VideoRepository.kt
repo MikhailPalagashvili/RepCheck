@@ -4,13 +4,16 @@ import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import com.repcheck.features.video.domain.repository.VideoRepository
 import com.repcheck.features.video.infrastructure.table.WorkoutVideos
+import com.repcheck.features.workout.infrastructure.table.WorkoutSets
+import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.Instant
 
 class ExposedVideoRepository : VideoRepository {
     private fun rowToDomain(row: ResultRow): WorkoutVideo = WorkoutVideo(
-        id = row[WorkoutVideos.id],
+        id = row[WorkoutVideos.id].value,
         userId = row[WorkoutVideos.userId],
         workoutSetId = row[WorkoutVideos.workoutSetId],
         s3Key = row[WorkoutVideos.s3Key],
@@ -29,13 +32,13 @@ class ExposedVideoRepository : VideoRepository {
         s3Bucket: String,
         status: VideoStatus,
     ): WorkoutVideo = transaction {
-        val id = WorkoutVideos.insert { st ->
-            st[WorkoutVideos.userId] = userId
-            st[WorkoutVideos.workoutSetId] = workoutSetId
-            st[WorkoutVideos.s3Key] = s3Key
-            st[WorkoutVideos.s3Bucket] = s3Bucket
-            st[WorkoutVideos.status] = status
-        }[WorkoutVideos.id]
+        val id = WorkoutVideos.insertAndGetId { video ->
+            video[WorkoutVideos.userId] = userId
+            video[WorkoutVideos.workoutSetId] = workoutSetId
+            video[WorkoutVideos.s3Key] = s3Key
+            video[WorkoutVideos.s3Bucket] = s3Bucket
+            video[WorkoutVideos.status] = status
+        }
 
         WorkoutVideos.select { WorkoutVideos.id eq id }
             .single()
@@ -43,20 +46,23 @@ class ExposedVideoRepository : VideoRepository {
     }
 
     override fun updateStatus(id: Long, status: VideoStatus): Boolean = transaction {
-        WorkoutVideos.update({ WorkoutVideos.id eq id }) { st ->
-            st[WorkoutVideos.status] = status
+        WorkoutVideos.update({ WorkoutVideos.id eq EntityID(id, WorkoutVideos) }) { video ->
+            video[WorkoutVideos.status] = status
+            video[WorkoutVideos.updatedAt] = Instant.now()
         } > 0
     }
 
     override fun updateDuration(id: Long, durationSeconds: Int?): Boolean = transaction {
-        WorkoutVideos.update({ WorkoutVideos.id eq id }) { st ->
+        WorkoutVideos.update({ WorkoutVideos.id eq EntityID(id, WorkoutVideos) }) { st ->
             st[WorkoutVideos.durationSeconds] = durationSeconds
+            st[WorkoutVideos.updatedAt] = Instant.now()
         } > 0
     }
 
     override fun updateFileSize(id: Long, fileSizeBytes: Long?): Boolean = transaction {
-        WorkoutVideos.update({ WorkoutVideos.id eq id }) { st ->
+        WorkoutVideos.update({ WorkoutVideos.id eq EntityID(id, WorkoutVideos) }) { st ->
             st[WorkoutVideos.fileSizeBytes] = fileSizeBytes
+            st[WorkoutVideos.updatedAt] = Instant.now()
         } > 0
     }
 
@@ -67,10 +73,9 @@ class ExposedVideoRepository : VideoRepository {
     }
 
     override fun findById(id: Long): WorkoutVideo? = transaction {
-        WorkoutVideos.select { WorkoutVideos.id eq id }
-            .limit(1)
+        WorkoutVideos.select { WorkoutVideos.id eq EntityID(id, WorkoutVideos) }
+            .map(::rowToDomain)
             .singleOrNull()
-            ?.let(::rowToDomain)
     }
 
     override fun findBySet(workoutSetId: Long): List<WorkoutVideo> = transaction {
@@ -82,11 +87,11 @@ class ExposedVideoRepository : VideoRepository {
     override fun findByUser(userId: Long, limit: Int, offset: Long): List<WorkoutVideo> = transaction {
         WorkoutVideos.select { WorkoutVideos.userId eq userId }
             .orderBy(WorkoutVideos.createdAt to SortOrder.DESC)
-            .limit(limit, offset)
+            .limit(n = limit, offset = offset)
             .map(::rowToDomain)
     }
 
     override fun delete(id: Long): Boolean = transaction {
-        WorkoutVideos.deleteWhere { WorkoutVideos.id eq id } > 0
+        WorkoutVideos.deleteWhere { WorkoutVideos.id eq EntityID(id, WorkoutVideos) } > 0
     }
 }

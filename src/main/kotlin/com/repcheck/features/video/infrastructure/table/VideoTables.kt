@@ -3,12 +3,11 @@ package com.repcheck.features.video.infrastructure.table
 import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.dao.id.LongIdTable as IdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.Instant
 
-object WorkoutVideos : Table("workout_videos") {
-    val id = long("id").autoIncrement()
+object WorkoutVideos : IdTable("workout_videos") {
     val userId = long("user_id")
     val workoutSetId = long("workout_set_id").references(
         WorkoutSets.id,
@@ -21,7 +20,5 @@ object WorkoutVideos : Table("workout_videos") {
     val fileSizeBytes = long("file_size_bytes").nullable()
     val createdAt = timestamp("created_at").default(Instant.now())
     val updatedAt = timestamp("updated_at").default(Instant.now())
-
-    override val primaryKey = PrimaryKey(id, name = "pk_workout_videos")
 }
 

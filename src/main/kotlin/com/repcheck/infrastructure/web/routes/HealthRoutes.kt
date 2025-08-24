@@ -1,4 +1,4 @@
-package com.repcheck.web.routes
+package com.repcheck.infrastructure.web.routes
 
 import com.repcheck.db.Database
 import io.ktor.http.*

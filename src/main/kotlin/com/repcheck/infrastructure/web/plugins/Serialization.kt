@@ -1,4 +1,4 @@
-package com.repcheck.web.plugins
+package com.repcheck.infrastructure.web.plugins
 
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
