@@ -66,5 +66,18 @@ fun Route.authRoutes(authService: AuthService, jwt: JwtProvider) {
                 )
             }
         }
+
+        // Email verification endpoint
+        get("/verify-email") {
+            val token = call.request.queryParameters["token"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing token"))
+
+            val isVerified = authService.verifyEmail(token)
+            if (isVerified) {
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully"))
+            } else {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid or expired verification token"))
+            }
+        }
     }
 }
