@@ -1,10 +1,10 @@
-package com.repcheck.features.workout.infrastructure.db.repository
+package com.repcheck.com.repcheck.features.workout.infrastructure.repository
 
 import com.repcheck.features.workout.domain.model.Workout
 import com.repcheck.features.workout.domain.model.WorkoutSet
 import com.repcheck.features.workout.domain.repository.WorkoutRepository
-import com.repcheck.features.workout.infrastructure.db.tables.WorkoutSets
-import com.repcheck.features.workout.infrastructure.db.tables.Workouts
+import com.repcheck.com.repcheck.features.workout.infrastructure.table.WorkoutSets
+import com.repcheck.com.repcheck.features.workout.infrastructure.table.Workouts
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq

@@ -1,9 +1,9 @@
-package com.repcheck.features.video.infrastructure.db.repository
+package com.repcheck.com.repcheck.features.video.infrastructure.repository
 
 import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import com.repcheck.features.video.domain.repository.VideoRepository
-import com.repcheck.features.video.infrastructure.db.tables.WorkoutVideos
+import com.repcheck.com.repcheck.features.video.infrastructure.table.WorkoutVideos
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq

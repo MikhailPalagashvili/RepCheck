@@ -68,7 +68,7 @@ fun Application.module() {
         healthRoutes()
 
         // Install auth routes with rate limiting
-        authRoutes(authService, jwt)
+        authRoutes(authService)
 
         // Apply rate limiting to all auth routes
         route("/api/v1/auth") {

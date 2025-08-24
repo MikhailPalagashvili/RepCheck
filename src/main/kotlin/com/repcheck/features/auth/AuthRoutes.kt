@@ -25,7 +25,7 @@ data class UserResponse(
     val id: String, val email: String, val createdAt: String
 )
 
-fun Route.authRoutes(authService: AuthService, jwt: JwtProvider) {
+fun Route.authRoutes(authService: AuthService) {
     route("/api/v1/auth") {
         post("/register") {
             val req = call.receive<RegisterRequest>()

@@ -1,6 +1,6 @@
-package com.repcheck.features.video.infrastructure.db.tables
+package com.repcheck.com.repcheck.features.video.infrastructure.table
 
-import com.repcheck.features.workout.infrastructure.db.tables.WorkoutSets
+import com.repcheck.com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import com.repcheck.features.video.domain.model.VideoStatus
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table

@@ -1,7 +1,7 @@
-package com.repcheck.features.ai.infrastructure.db.tables
+package com.repcheck.com.repcheck.features.ai.infrastructure.table
 
-import com.repcheck.features.video.infrastructure.db.tables.WorkoutVideos
-import com.repcheck.features.workout.infrastructure.db.tables.WorkoutSets
+import com.repcheck.com.repcheck.features.video.infrastructure.table.WorkoutVideos
+import com.repcheck.com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import com.repcheck.features.ai.domain.model.AnalysisStatus
 import com.repcheck.features.ai.domain.model.AnalysisResults
 import kotlinx.serialization.json.Json
@@ -19,8 +19,11 @@ object AIFeedbackTable : Table("ai_feedback") {
         name = "analysis_results",
         serialize = { value -> Json.encodeToString(AnalysisResults.serializer(), value) },
         deserialize = { raw ->
-            val s = raw as? String
-            s?.let { Json.decodeFromString(AnalysisResults.serializer(), it) } ?: AnalysisResults()
+            try {
+                Json.decodeFromString(AnalysisResults.serializer(), raw)
+            } catch (e: Exception) {
+                AnalysisResults()
+            }
         }
     )
     val status = enumerationByName<AnalysisStatus>("status", 20).default(AnalysisStatus.PENDING)
@@ -30,4 +33,3 @@ object AIFeedbackTable : Table("ai_feedback") {
 
     override val primaryKey = PrimaryKey(id, name = "pk_ai_feedback")
 }
-

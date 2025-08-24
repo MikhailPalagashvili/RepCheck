@@ -133,9 +133,7 @@ class AuthService(
 
         return transaction {
             // Check if user already exists
-            if (Users.select { Users.email eq normalized }.count() > 0) {
-                throw IllegalArgumentException("User with this email already exists")
-            }
+            require(Users.select { Users.email eq normalized }.count() <= 0) { "User with this email already exists" }
 
             val userId = UUID.randomUUID()
             Users.insert {
