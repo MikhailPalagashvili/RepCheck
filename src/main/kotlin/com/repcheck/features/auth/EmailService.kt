@@ -23,7 +23,7 @@ class ConsoleEmailService : EmailService {
             If you didn't request this, please ignore this email.
             ===========================================
         """.trimIndent()
-        
+
         println("Sending verification email to $email:\n$message")
     }
 
@@ -43,10 +43,10 @@ class ConsoleEmailService : EmailService {
             If you didn't request this, please ignore this email.
             ===========================================
         """.trimIndent()
-        
+
         println("Sending password reset email to $email:\n$message")
     }
-    
+
     private fun getBaseUrl(): String {
         // In a real app, this should come from configuration
         return "http://localhost:8080"

@@ -1,6 +1,7 @@
 package com.repcheck.features.workout.infrastructure.table
 
 import com.repcheck.features.workout.domain.model.LiftType
+import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.Instant
