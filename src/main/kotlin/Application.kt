@@ -77,9 +77,9 @@ fun Application.module() {
 private fun Application.runFlywayMigrations() {
     val dbConfig = AppConfig.databaseConfig()
     val flyway = configure().dataSource(
-            dbConfig.url,
-            dbConfig.user,
-            dbConfig.password
-        ).load()
+        dbConfig.url,
+        dbConfig.user,
+        dbConfig.password
+    ).load()
     flyway.migrate()
 }
