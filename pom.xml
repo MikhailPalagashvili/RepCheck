@@ -260,12 +260,20 @@
             <version>3.5.0</version>
         </dependency>
 
-        <!-- AWS SDK -->
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-auth-jwt</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+
+        <!-- AWS SDK - Temporarily commented out for testing
         <dependency>
             <groupId>aws.sdk.kotlin</groupId>
             <artifactId>aws-sdk-kotlin</artifactId>
             <version>1.0.0</version>
         </dependency>
+        -->
         
         <!-- Email -->
         <dependency>

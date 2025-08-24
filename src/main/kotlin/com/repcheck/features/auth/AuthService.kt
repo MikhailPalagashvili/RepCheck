@@ -1,10 +1,7 @@
 package com.repcheck.features.auth
 
 import at.favre.lib.crypto.bcrypt.BCrypt
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -14,14 +11,27 @@ import java.time.Instant
 import java.util.*
 
 class AuthService(
-    private val jwt: JwtProvider = JwtProvider(),
-    private val emailService: EmailService = ConsoleEmailService()
-) : CoroutineScope {
+    private val jwt: JwtProvider,
+    private val emailService: EmailService = ConsoleEmailService(),
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+) : CoroutineScope, AutoCloseable {
     private val job = SupervisorJob()
-    override val coroutineContext = Dispatchers.Default + job
+    override val coroutineContext = coroutineScope.coroutineContext + job
 
-    fun close() {
-        job.cancel()
+    @OptIn(DelicateCoroutinesApi::class)
+    override fun close() {
+        try {
+            // Cancel all children first
+            job.cancel("AuthService is shutting down")
+            // Cancel the parent scope if it's not the same as our job
+            if (coroutineScope.coroutineContext[Job] != job) {
+                coroutineScope.cancel("AuthService parent scope is shutting down")
+            }
+        } catch (e: Exception) {
+            // Log the error if needed
+            println("Error during AuthService shutdown: ${e.message}")
+            throw e
+        }
     }
 
     data class Tokens(val accessToken: String, val refreshToken: String, val expiresIn: Long)
@@ -45,6 +55,27 @@ class AuthService(
         return Tokens(accessToken, refreshToken, jwt.expiresSeconds)
     }
 
+    fun verifyEmail(token: String): Boolean = transaction {
+        val now = Instant.now()
+
+        // Find user with valid verification token
+        val userId = Users
+            .select {
+                (Users.verificationToken eq token) and
+                        (Users.verificationTokenExpiresAt greater now)
+            }
+            .map { it[Users.id].value }
+            .singleOrNull()
+            ?: return@transaction false
+
+        // Update user as verified and clear verification token
+        Users.update({ Users.id eq userId }) {
+            it[isVerified] = true
+            it[verificationToken] = null
+            it[verificationTokenExpiresAt] = null
+        } > 0
+    }
+
     fun validateToken(token: String): UUID {
         return try {
             val decoded = jwt.verifier().verify(token)
@@ -52,23 +83,6 @@ class AuthService(
         } catch (e: Exception) {
             throw SecurityException("Invalid or expired token")
         }
-    }
-
-    fun verifyEmail(token: String): Boolean = transaction {
-        val now = Instant.now()
-
-        val user = Users.select {
-            (Users.verificationToken eq token) and
-                    (Users.verificationTokenExpiresAt greater now)
-        }.map {
-            it[Users.id].value
-        }.singleOrNull() ?: return@transaction false
-
-        Users.update({ Users.id eq user }) {
-            it[isVerified] = true
-            it[verificationToken] = null
-            it[verificationTokenExpiresAt] = null
-        } > 0
     }
 
     fun findByEmail(email: String): User? = transaction {
@@ -137,7 +151,7 @@ class AuthService(
             )
 
             // Send verification email after the transaction is complete
-            launch(Dispatchers.IO) {
+            coroutineScope.launch {
                 try {
                     emailService.sendVerificationEmail(
                         email = normalized,
