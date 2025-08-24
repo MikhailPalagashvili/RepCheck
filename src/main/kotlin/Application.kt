@@ -5,6 +5,8 @@ import com.repcheck.db.Database
 import com.repcheck.features.auth.AuthService
 import com.repcheck.features.auth.JwtProvider
 import com.repcheck.features.auth.authRoutes
+import com.repcheck.features.ratelimit.RateLimit
+import com.repcheck.features.ratelimit.RateLimitConfig
 import com.repcheck.web.plugins.installMonitoring
 import com.repcheck.web.plugins.installSerialization
 import com.repcheck.web.routes.healthRoutes
@@ -13,6 +15,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.*
 import io.ktor.server.routing.*
 import org.flywaydb.core.Flyway.configure
 
@@ -32,6 +35,13 @@ fun Application.module() {
 
     installMonitoring()
     installSerialization()
+
+    // Configure Rate Limit for auth endpoints
+    val authRateLimit = RateLimit(RateLimitConfig(
+        requestsPerMinute = 100,  // 100 requests per minute
+        message = "Too many requests, please try again later."
+    ))
+
     install(Authentication) {
         jwt("auth-jwt") {
             verifier(jwt.verifier())
@@ -41,8 +51,20 @@ fun Application.module() {
         }
     }
     routing {
+        // Public health check endpoint - no rate limiting
         healthRoutes()
+
+        // Install auth routes with rate limiting
         authRoutes(authService, jwt)
+
+        // Apply rate limiting to all auth routes
+        route("/api/v1/auth") {
+            intercept(ApplicationCallPipeline.Call) {
+                authRateLimit.intercept(this) {
+                    proceed()
+                }
+            }
+        }
     }
 }
 
