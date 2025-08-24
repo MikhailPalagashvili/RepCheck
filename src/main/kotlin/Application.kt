@@ -15,7 +15,6 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.server.plugins.*
 import io.ktor.server.routing.*
 import org.flywaydb.core.Flyway.configure
 
@@ -27,9 +26,14 @@ fun main() {
 }
 
 fun Application.module() {
-    Database.initialize(AppConfig.databaseConfig())
+    // Initialize database
+    val dbConfig = AppConfig.databaseConfig()
+    Database.init(dbConfig)
+
+    // Run migrations
     runFlywayMigrations()
-    // Providers
+
+    // Initialize services
     val jwt = JwtProvider()
     val authService = AuthService(jwt)
 
@@ -37,10 +41,12 @@ fun Application.module() {
     installSerialization()
 
     // Configure Rate Limit for auth endpoints
-    val authRateLimit = RateLimit(RateLimitConfig(
-        requestsPerMinute = 100,  // 100 requests per minute
-        message = "Too many requests, please try again later."
-    ))
+    val authRateLimit = RateLimit(
+        RateLimitConfig(
+            requestsPerMinute = 100,  // 100 requests per minute
+            message = "Too many requests, please try again later."
+        )
+    )
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -68,4 +74,12 @@ fun Application.module() {
     }
 }
 
-private fun runFlywayMigrations() = configure().dataSource(Database.dataSource).load().migrate()
+private fun Application.runFlywayMigrations() {
+    val dbConfig = AppConfig.databaseConfig()
+    val flyway = configure().dataSource(
+            dbConfig.url,
+            dbConfig.user,
+            dbConfig.password
+        ).load()
+    flyway.migrate()
+}

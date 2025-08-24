@@ -1,48 +1,38 @@
 package com.repcheck.db
 
 import com.repcheck.config.DatabaseConfig
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
-import javax.sql.DataSource
 
 object Database {
     private val log = LoggerFactory.getLogger(Database::class.java)
 
-    @Volatile
-    lateinit var dataSource: DataSource
-        private set
-
-    fun initialize(configuration: DatabaseConfig) {
-        val hc = HikariConfig().apply {
-            jdbcUrl = configuration.url
-            username = configuration.user
-            password = configuration.password
-            maximumPoolSize = configuration.maxPoolSize
-            connectionTimeout = configuration.connectionTimeoutMs
-            maxLifetime = configuration.maxLifetimeMs
-            idleTimeout = configuration.idleTimeoutMs
-            isAutoCommit = true
-            poolName = "repcheck-hikari"
+    /**
+     * Initialize the database connection and run migrations
+     */
+    fun init(config: DatabaseConfig) {
+        // Initialize the database connection pool and Exposed
+        DatabaseFactory.init(config)
+        // Test the connection
+        if (ping()) {
+            log.info("Database connection established successfully")
+        } else {
+            log.warn("Database connection test failed")
         }
-        dataSource = HikariDataSource(hc)
-        log.info(
-            "HikariCP initialized url={}, maxPoolSize={}, connTimeoutMs={}",
-            sanitizeUrl(configuration.url), configuration.maxPoolSize, configuration.connectionTimeoutMs
-        )
     }
 
-    /** Quick connectivity check used by readiness probes. */
+    /**
+     * Quick connectivity check used by readiness probes
+     */
     fun ping(): Boolean = try {
-        dataSource.connection.use { conn ->
-            conn.createStatement().use { st -> st.execute("SELECT 1") }
+        transaction {
+            // Execute a simple query to test the connection
+            exec("SELECT 1") {}
+            true
         }
-        true
     } catch (e: Exception) {
         log.warn("Database ping failed", e)
         false
     }
-
-    private fun sanitizeUrl(url: String): String =
-        url.replace(Regex("://([^:@/]+):([^@/]+)@"), "://****:****@")
 }

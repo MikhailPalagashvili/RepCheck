@@ -4,15 +4,15 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.repcheck.config.AppConfig
-import java.util.Date
+import java.util.*
 
 class JwtProvider {
-    private val cfg = AppConfig.jwtConfig()
-    private val algo = Algorithm.HMAC256(cfg.secret)
+    private val config = AppConfig.jwtConfig()
+    private val algo = Algorithm.HMAC256(config.secret)
 
-    private val issuer: String = cfg.issuer
-    private val audience: String = cfg.audience
-    val expiresSeconds: Long = cfg.expiresSeconds
+    private val issuer: String = config.issuer
+    private val audience: String = config.audience
+    val expiresSeconds: Long = config.expiresSeconds
 
     fun verifier(): JWTVerifier = JWT
         .require(algo)

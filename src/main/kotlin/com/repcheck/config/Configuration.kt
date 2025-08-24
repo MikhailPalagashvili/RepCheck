@@ -1,13 +1,17 @@
 package com.repcheck.config
 
+import org.jetbrains.exposed.sql.Transaction
+
 data class DatabaseConfig(
     val url: String,
     val user: String,
     val password: String,
+    val driver: String = "org.postgresql.Driver",
     val maxPoolSize: Int = 10,
-    val connectionTimeoutMs: Long = 2_000,
-    val maxLifetimeMs: Long = 30 * 60 * 1000, // 30m
-    val idleTimeoutMs: Long = 10 * 60 * 1000  // 10m
+    val connectionTimeoutMs: Long = 30000,
+    val maxLifetimeMs: Long = 600000,
+    val idleTimeoutMs: Long = 60000,
+    var sqlLogger: (Transaction.(String) -> Unit)? = null
 )
 
 data class JwtConfig(
@@ -24,6 +28,7 @@ object AppConfig {
         val url = config.getString("db.url")
         val user = config.getString("db.user")
         val password = config.getString("db.password")
+        val driver = config.getString("db.driver")
 
         val maxPool = config.getIntOrNull("db.pool.maxPoolSize") ?: 10
         val connTimeout = config.getLongOrNull("db.pool.connectionTimeoutMs") ?: 2_000L
@@ -34,6 +39,7 @@ object AppConfig {
             url = url,
             user = user,
             password = password,
+            driver = driver,
             maxPoolSize = maxPool,
             connectionTimeoutMs = connTimeout,
             maxLifetimeMs = maxLifetime,
