@@ -267,11 +267,17 @@
             <version>${ktor.version}</version>
         </dependency>
 
-        <!-- AWS SDK - Temporarily commented out for testing
+        <!-- AWS SDK -->
         <dependency>
             <groupId>aws.sdk.kotlin</groupId>
-            <artifactId>aws-sdk-kotlin</artifactId>
-            <version>1.0.0</version>
+            <artifactId>aws-core</artifactId>
+            <version>0.30.1-beta</version>
+        </dependency>
+        <!-- Add specific service dependencies as needed, for example:
+        <dependency>
+            <groupId>aws.sdk.kotlin</groupId>
+            <artifactId>s3</artifactId>
+            <version>0.30.1-beta</version>
         </dependency>
         -->
         
