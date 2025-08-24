@@ -1,5 +1,6 @@
-package com.repcheck.features.video.infrastructure.db.tables
+package com.repcheck.com.repcheck.features.video.infrastructure.table
 
+import com.repcheck.com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import com.repcheck.features.video.domain.model.VideoStatus
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
@@ -10,7 +11,7 @@ object WorkoutVideos : Table("workout_videos") {
     val id = long("id").autoIncrement()
     val userId = long("user_id")
     val workoutSetId = long("workout_set_id").references(
-        com.repcheck.features.workout.infrastructure.db.tables.WorkoutSets.id,
+        WorkoutSets.id,
         onDelete = ReferenceOption.CASCADE
     )
     val s3Key = varchar("s3_key", 255)

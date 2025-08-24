@@ -2,6 +2,7 @@ package com.repcheck
 
 import com.repcheck.config.AppConfig
 import com.repcheck.db.Database
+import com.repcheck.di.appModule
 import com.repcheck.features.auth.AuthService
 import com.repcheck.features.auth.JwtProvider
 import com.repcheck.features.auth.authRoutes
@@ -18,8 +19,6 @@ import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import org.flywaydb.core.Flyway.configure
 import org.koin.ktor.plugin.Koin
-import org.koin.dsl.module
-import com.repcheck.di.appModule
 
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080

@@ -1,5 +1,7 @@
 package com.repcheck.features.ai.infrastructure.db.tables
 
+import com.repcheck.com.repcheck.features.video.infrastructure.table.WorkoutVideos
+import com.repcheck.com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import com.repcheck.features.ai.domain.model.AnalysisStatus
 import com.repcheck.features.ai.domain.model.AnalysisResults
 import kotlinx.serialization.json.Json
@@ -12,11 +14,11 @@ import java.time.Instant
 object AIFeedbackTable : Table("ai_feedback") {
     val id = long("id").autoIncrement()
     val videoId = long("video_id").references(
-        com.repcheck.features.video.infrastructure.db.tables.WorkoutVideos.id,
+        WorkoutVideos.id,
         onDelete = ReferenceOption.CASCADE
     )
     val workoutSetId = long("workout_set_id").references(
-        com.repcheck.features.workout.infrastructure.db.tables.WorkoutSets.id,
+        WorkoutSets.id,
         onDelete = ReferenceOption.CASCADE
     )
     val analysisResults = jsonb<AnalysisResults>(
