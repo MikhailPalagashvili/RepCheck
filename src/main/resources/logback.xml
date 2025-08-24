@@ -5,8 +5,15 @@
     </encoder>
   </appender>
 
-  <logger name="io.ktor" level="INFO"/>
+  <!-- Enable debug logging for Ktor and our application -->
+  <logger name="io.ktor" level="TRACE"/>
   <logger name="com.repcheck" level="DEBUG"/>
+  
+  <!-- Enable request/response logging -->
+  <logger name="org.http4k.filter.ServerFilters" level="TRACE"/>
+  <logger name="Application" level="TRACE"/>
+  <logger name="org.eclipse.jetty" level="INFO"/>
+  <logger name="org.jooq" level="DEBUG"/>
 
   <root level="INFO">
     <appender-ref ref="STDOUT"/>

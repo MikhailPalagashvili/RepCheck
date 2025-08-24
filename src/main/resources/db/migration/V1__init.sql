@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Simple healthcheck table (optional, useful in demos)
-CREATE TABLE IF NOT EXISTS healthcheck (
+-- Simple health check table (optional, useful in demos)
+CREATE TABLE IF NOT EXISTS health_check (
     id INT PRIMARY KEY DEFAULT 1,
     checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

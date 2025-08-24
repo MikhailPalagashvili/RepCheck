@@ -10,6 +10,13 @@ data class DatabaseConfig(
     val idleTimeoutMs: Long = 10 * 60 * 1000  // 10m
 )
 
+data class JwtConfig(
+    val secret: String,
+    val issuer: String,
+    val audience: String,
+    val expiresSeconds: Long = 900
+)
+
 object AppConfig {
     fun databaseConfig(): DatabaseConfig {
         val config = com.typesafe.config.ConfigFactory.load()
@@ -32,6 +39,15 @@ object AppConfig {
             maxLifetimeMs = maxLifetime,
             idleTimeoutMs = idleTimeout
         )
+    }
+
+    fun jwtConfig(): JwtConfig {
+        val config = com.typesafe.config.ConfigFactory.load()
+        val secret = config.getString("jwt.secret")
+        val issuer = config.getString("jwt.issuer")
+        val audience = config.getString("jwt.audience")
+        val exp = config.getLongOrNull("jwt.expiresSeconds") ?: 900L
+        return JwtConfig(secret = secret, issuer = issuer, audience = audience, expiresSeconds = exp)
     }
 }
 
