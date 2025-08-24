@@ -1,4 +1,4 @@
-package com.repcheck.features.workout.infrastructure.table
+package com.repcheck.features.workout.infrastructure.db.tables
 
 import com.repcheck.features.workout.domain.model.LiftType
 import org.jetbrains.exposed.sql.ReferenceOption
@@ -43,3 +43,4 @@ object WorkoutSets : Table("workout_sets") {
 
     override val primaryKey = PrimaryKey(id, name = "pk_workout_sets")
 }
+

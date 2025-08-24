@@ -12,11 +12,11 @@ import java.time.Instant
 object AIFeedbackTable : Table("ai_feedback") {
     val id = long("id").autoIncrement()
     val videoId = long("video_id").references(
-        com.repcheck.features.video.infrastructure.table.WorkoutVideos.id,
+        com.repcheck.features.video.infrastructure.db.tables.WorkoutVideos.id,
         onDelete = ReferenceOption.CASCADE
     )
     val workoutSetId = long("workout_set_id").references(
-        com.repcheck.features.workout.infrastructure.table.WorkoutSets.id,
+        com.repcheck.features.workout.infrastructure.db.tables.WorkoutSets.id,
         onDelete = ReferenceOption.CASCADE
     )
     val analysisResults = jsonb<AnalysisResults>(

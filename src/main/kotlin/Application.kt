@@ -17,6 +17,9 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import org.flywaydb.core.Flyway.configure
+import org.koin.ktor.plugin.Koin
+import org.koin.dsl.module
+import com.repcheck.di.appModule
 
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
@@ -32,6 +35,11 @@ fun Application.module() {
 
     // Run migrations
     runFlywayMigrations()
+
+    // Dependency Injection
+    install(Koin) {
+        modules(appModule)
+    }
 
     // Initialize services
     val jwt = JwtProvider()
