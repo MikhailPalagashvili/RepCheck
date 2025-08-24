@@ -1,9 +1,8 @@
 package com.repcheck.features.ai.infrastructure.table
 
 import com.repcheck.features.ai.domain.model.AnalysisStatus
+import com.repcheck.features.ai.domain.model.AnalysisResults
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonObject
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
@@ -20,12 +19,12 @@ object AIFeedbackTable : Table("ai_feedback") {
         com.repcheck.features.workout.infrastructure.table.WorkoutSets.id,
         onDelete = ReferenceOption.CASCADE
     )
-    val analysisResults = jsonb<JsonObject>(
+    val analysisResults = jsonb<AnalysisResults>(
         name = "analysis_results",
-        serialize = { it.toString() },
+        serialize = { value -> Json.encodeToString(AnalysisResults.serializer(), value) },
         deserialize = { raw ->
             val s = raw as? String
-            s?.let { Json.parseToJsonElement(it).jsonObject } ?: JsonObject(emptyMap())
+            s?.let { Json.decodeFromString(AnalysisResults.serializer(), it) } ?: AnalysisResults()
         }
     )
     val status = enumerationByName<AnalysisStatus>("status", 20).default(AnalysisStatus.PENDING)

@@ -1,5 +1,8 @@
 package com.repcheck.features.ai.domain.model
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+
 data class AIFeedback(
     val id: Long = 0,
     val videoId: Long,
@@ -11,13 +14,14 @@ data class AIFeedback(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Serializable
 data class AnalysisResults(
     val depthScore: Float? = null,
     val barPathScore: Float? = null,
     val symmetryScore: Float? = null,
     val overallScore: Float? = null,
     val feedback: List<String> = emptyList(),
-    val rawData: Map<String, Any> = emptyMap()
+    val rawData: JsonObject = JsonObject(emptyMap())
 )
 
 enum class AnalysisStatus {
