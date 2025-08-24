@@ -1,7 +1,7 @@
-package com.repcheck.com.repcheck.features.ai.infrastructure.table
+package com.repcheck.features.ai.infrastructure.table
 
-import com.repcheck.com.repcheck.features.video.infrastructure.table.WorkoutVideos
-import com.repcheck.com.repcheck.features.workout.infrastructure.table.WorkoutSets
+import com.repcheck.features.video.infrastructure.table.WorkoutVideos
+import com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import com.repcheck.features.ai.domain.model.AnalysisStatus
 import com.repcheck.features.ai.domain.model.AnalysisResults
 import kotlinx.serialization.json.Json

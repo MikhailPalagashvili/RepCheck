@@ -1,4 +1,4 @@
-package com.repcheck.com.repcheck.features.workout.infrastructure.table
+package com.repcheck.features.workout.infrastructure.table
 
 import com.repcheck.features.workout.domain.model.LiftType
 import org.jetbrains.exposed.sql.ReferenceOption

@@ -1,10 +1,10 @@
-package com.repcheck.com.repcheck.features.ai.infrastructure.repository
+package com.repcheck.features.ai.infrastructure.repository
 
 import com.repcheck.features.ai.domain.model.AIFeedback
 import com.repcheck.features.ai.domain.model.AnalysisResults
 import com.repcheck.features.ai.domain.model.AnalysisStatus
 import com.repcheck.features.ai.domain.repository.AIFeedbackRepository
-import com.repcheck.com.repcheck.features.ai.infrastructure.table.AIFeedbackTable
+import com.repcheck.features.ai.infrastructure.table.AIFeedbackTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
