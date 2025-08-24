@@ -1,4 +1,4 @@
-package com.repcheck.features.ai.infrastructure.table
+package com.repcheck.features.ai.infrastructure.db.tables
 
 import com.repcheck.features.ai.domain.model.AnalysisStatus
 import com.repcheck.features.ai.domain.model.AnalysisResults
@@ -34,3 +34,4 @@ object AIFeedbackTable : Table("ai_feedback") {
 
     override val primaryKey = PrimaryKey(id, name = "pk_ai_feedback")
 }
+

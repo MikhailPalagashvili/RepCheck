@@ -52,9 +52,9 @@ class AuthServiceShutdownTest {
         val jwt = JwtProvider()
         val service = AuthService(jwt)
         
-        // Launch a coroutine that should be cancelled
+        // Launch a coroutine in the service's scope that should be cancelled by service.close()
         var wasCancelled = false
-        val job = CoroutineScope(Dispatchers.Default).launch {
+        val job = service.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
                 delay(1000) // This will be cancelled
                 wasCancelled = false // Shouldn't reach here

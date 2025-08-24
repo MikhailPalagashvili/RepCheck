@@ -23,9 +23,16 @@ class AuthService(
         try {
             // Cancel all children first
             job.cancel("AuthService is shutting down")
-            // Cancel the parent scope if it's not the same as our job
-            if (coroutineScope.coroutineContext[Job] != job) {
-                coroutineScope.cancel("AuthService parent scope is shutting down")
+            // Also cancel the parent scope if it's not the same as our job
+            val parentJob = coroutineScope.coroutineContext[Job]
+            if (parentJob != null && parentJob != job) {
+                parentJob.cancel("AuthService parent scope is shutting down")
+            }
+
+            // Wait for cancellation to complete to ensure deterministic shutdown
+            runBlocking {
+                job.join()
+                parentJob?.join()
             }
         } catch (e: Exception) {
             // Log the error if needed

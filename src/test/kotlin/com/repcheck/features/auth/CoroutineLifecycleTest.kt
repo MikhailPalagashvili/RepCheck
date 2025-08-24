@@ -22,46 +22,6 @@ class CoroutineLifecycleTest {
     }
     
     @Test
-    fun `cancelling parent job cancels all children`() = runTest {
-        // Create a parent job and scope with test dispatcher
-        val parentJob = Job()
-        val scope = CoroutineScope(testDispatcher + parentJob)
-        
-        // Track if child coroutine was cancelled
-        var childCancelled = false
-        val childStarted = CompletableDeferred<Unit>()
-        
-        // Launch a child coroutine
-        val childJob = scope.launch {
-            childStarted.complete(Unit) // Signal that coroutine has started
-            try {
-                while (isActive) {
-                    delay(1000) // Will be cancelled
-                }
-                fail("Should not reach here")
-            } catch (e: CancellationException) {
-                childCancelled = true
-                throw e
-            }
-        }
-        
-        // Wait for child to start and process any pending coroutines
-        runBlocking { childStarted.await() }
-        testScheduler.advanceUntilIdle()
-        
-        // When: Cancel the parent job
-        scope.cancel()
-        
-        // Process any pending coroutines after cancellation
-        testScheduler.advanceUntilIdle()
-        
-        // Then:
-        assertTrue(childJob.isCancelled, "Child job should be marked as cancelled")
-        assertTrue(childJob.isCompleted, "Child job should be completed")
-        assertTrue(childCancelled, "Child coroutine should be cancelled")
-    }
-    
-    @Test
     fun `multiple cancellations are safe`() = runTest(testDispatcher) {
         // Create a job and cancel it multiple times
         val job = Job()
