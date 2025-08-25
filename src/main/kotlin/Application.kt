@@ -2,23 +2,24 @@ package com.repcheck
 
 import com.repcheck.config.AppConfig
 import com.repcheck.db.Database
+import com.repcheck.di.AuthConfig
 import com.repcheck.di.appModule
-import com.repcheck.features.auth.AuthService
-import com.repcheck.features.auth.JwtProvider
-import com.repcheck.features.auth.authRoutes
-import com.repcheck.features.ratelimit.RateLimit
-import com.repcheck.features.ratelimit.RateLimitConfig
+import com.repcheck.di.configureAuth
+import com.repcheck.features.user.application.service.AuthService
+import com.repcheck.features.user.infrastructure.web.authRoutes
 import com.repcheck.infrastructure.web.plugins.installMonitoring
 import com.repcheck.infrastructure.web.plugins.installSerialization
 import com.repcheck.infrastructure.web.routes.healthRoutes
+import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.routing.*
-import org.flywaydb.core.Flyway.configure
-import org.koin.ktor.plugin.Koin
+import org.flywaydb.core.Flyway
+import org.koin.ktor.ext.get
+import org.koin.ktor.plugin.koin
 
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
@@ -35,58 +36,67 @@ fun Application.module() {
     // Run migrations
     runFlywayMigrations()
 
-    // Dependency Injection
-    install(Koin) {
+    // Install Koin
+    koin {
         modules(appModule)
     }
 
-    // Initialize services
-    val jwt = JwtProvider()
-    val authService = AuthService(jwt)
+    // Get dependencies from Koin
+    val authConfig = get<AuthConfig>()
+    val authService = get<AuthService>()
 
-    installMonitoring()
-    installSerialization()
+    // Configure application features
+    configureFeatures()
 
-    // Configure Rate Limit for auth endpoints
-    val authRateLimit = RateLimit(
-        RateLimitConfig(
-            requestsPerMinute = 100,  // 100 requests per minute
-            message = "Too many requests, please try again later."
-        )
-    )
+    // Configure authentication
+    configureAuth(authConfig)
 
-    install(Authentication) {
-        jwt("auth-jwt") {
-            verifier(jwt.verifier())
-            validate { credential ->
-                if (credential.payload.subject != null) JWTPrincipal(credential.payload) else null
-            }
-        }
-    }
-    routing {
+    // Setup routing
+    install(Routing) {
         // Public health check endpoint - no rate limiting
         healthRoutes()
 
-        // Install auth routes with rate limiting
-        authRoutes(authService)
-
-        // Apply rate limiting to all auth routes
+        // Auth routes with rate limiting
         route("/api/v1/auth") {
-            intercept(ApplicationCallPipeline.Call) {
-                authRateLimit.intercept(this) {
-                    proceed()
-                }
-            }
+            // Install auth routes
+            authRoutes(authService)
         }
     }
 }
 
-private fun Application.runFlywayMigrations() {
+private fun Application.configureFeatures() {
+    // Install CORS
+    install(CORS) {
+        anyHost()
+        allowCredentials = true
+        allowNonSimpleContentTypes = true
+        allowSameOrigin = true
+        allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Patch)
+        allowMethod(HttpMethod.Delete)
+        allowHeader(HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.ContentType)
+    }
+
+    // Install default headers
+    install(DefaultHeaders) {
+        header(HttpHeaders.Server, "RepCheck")
+    }
+
+    // Install monitoring
+    installMonitoring()
+    installSerialization()
+}
+
+private fun runFlywayMigrations() {
     val dbConfig = AppConfig.databaseConfig()
-    val flyway = configure().dataSource(
-        dbConfig.url,
-        dbConfig.user,
-        dbConfig.password
-    ).load()
+    val flyway = Flyway.configure()
+        .dataSource(
+            dbConfig.url,
+            dbConfig.user,
+            dbConfig.password
+        )
+        .load()
     flyway.migrate()
 }
