@@ -5,18 +5,15 @@ import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
 
 /**
- * Manages a test database connection for integration tests.
+ * Sets up and tears down an in-memory H2 test database.
  */
 object TestDatabaseFactory {
     private var dataSource: HikariDataSource? = null
 
-    /**
-     * Initializes the test database with an in-memory H2 database
-     */
     fun init() {
         if (dataSource == null) {
             val config = HikariConfig().apply {
-                jdbcUrl = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+                jdbcUrl = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
                 driverClassName = "org.h2.Driver"
                 username = "sa"
                 password = ""
@@ -30,9 +27,6 @@ object TestDatabaseFactory {
         }
     }
 
-    /**
-     * Closes the database connection and cleans up resources
-     */
     fun close() {
         dataSource?.close()
         dataSource = null
