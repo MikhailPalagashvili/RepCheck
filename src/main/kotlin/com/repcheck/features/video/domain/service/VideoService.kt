@@ -11,7 +11,6 @@ class VideoService(
     private val videoRepository: VideoRepository,
     private val s3UploadService: S3UploadService
 ) {
-
     /**
      * Creates a video record and returns a presigned URL for direct upload
      */
@@ -20,10 +19,7 @@ class VideoService(
         workoutSetId: Long,
         fileExtension: String = "mp4"
     ): Pair<WorkoutVideo, URL> {
-        // Generate a unique videoId
         val videoId = UUID.randomUUID().toString()
-
-        // Create video record in DB as UPLOADING
         val video = videoRepository.create(
             userId = userId,
             workoutSetId = workoutSetId,
@@ -31,25 +27,28 @@ class VideoService(
             s3Bucket = s3UploadService.bucketName,
             status = VideoStatus.UPLOADING
         )
-
-        // Generate presigned URL
         val uploadUrl = s3UploadService.generateVideoUploadUrl(videoId, fileExtension)
-
         return video to uploadUrl
     }
 
-    fun markVideoProcessed(videoId: Long, duration: Int, fileSize: Long) {
-        videoRepository.updateStatus(videoId, VideoStatus.PROCESSED)
-        videoRepository.updateDuration(videoId, duration)
-        videoRepository.updateFileSize(videoId, fileSize)
+    fun getVideo(videoId: Long): WorkoutVideo? = videoRepository.findById(videoId)
+
+    /**
+     * Complete the video upload process by updating metadata and status
+     * Note: This method doesn't use a transaction as the repository methods handle their own transactions
+     * @param videoId ID of the video to update
+     * @param fileSizeBytes Size of the uploaded file in bytes
+     * @param durationSeconds Duration of the video in seconds
+     * @return The updated video or null if not found
+     */
+    fun completeVideoUpload(
+        videoId: Long,
+        fileSizeBytes: Long,
+        durationSeconds: Int
+    ): WorkoutVideo? {
+        videoRepository.updateFileSize(videoId, fileSizeBytes)
+        videoRepository.updateDuration(videoId, durationSeconds)
+        videoRepository.updateStatus(videoId, VideoStatus.UPLOADED)
+        return videoRepository.findById(videoId)
     }
-
-    fun getVideo(videoId: Long): WorkoutVideo? =
-        videoRepository.findById(videoId)
-
-    fun getVideosForUser(userId: Long, limit: Int = 50, offset: Long = 0): List<WorkoutVideo> =
-        videoRepository.findByUser(userId, limit, offset)
-
-    fun deleteVideo(videoId: Long): Boolean =
-        videoRepository.delete(videoId)
 }

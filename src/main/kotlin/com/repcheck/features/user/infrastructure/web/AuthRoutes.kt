@@ -33,74 +33,72 @@ data class UserResponse(
 )
 
 fun Route.authRoutes(authService: AuthService) {
-    route("/api/v1/auth") {
-        post("/register") {
-            val req = call.receive<RegisterRequest>()
-            try {
-                val user = authService.register(req.email, req.password)
-                call.respond(
-                    HttpStatusCode.Created,
-                    UserResponse(
-                        id = user.id.toString(),
-                        email = user.email,
-                        isVerified = user.isVerified,
-                        createdAt = user.createdAt.toString()
-                    )
+    post("/register") {
+        val req = call.receive<RegisterRequest>()
+        try {
+            val user = authService.register(req.email, req.password)
+            call.respond(
+                HttpStatusCode.Created,
+                UserResponse(
+                    id = user.id.toString(),
+                    email = user.email,
+                    isVerified = user.isVerified,
+                    createdAt = user.createdAt.toString()
                 )
-            } catch (e: IllegalArgumentException) {
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid request")))
-            }
+            )
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid request")))
         }
+    }
 
-        post("/login") {
-            val req = call.receive<LoginRequest>()
-            try {
-                val tokens = authService.login(req.email, req.password)
-                call.respond(
-                    HttpStatusCode.OK,
-                    TokenResponse(
-                        accessToken = tokens.accessToken,
-                        refreshToken = tokens.refreshToken,
-                        tokenType = "Bearer",
-                        expiresIn = tokens.expiresIn
-                    )
+    post("/login") {
+        val req = call.receive<LoginRequest>()
+        try {
+            val tokens = authService.login(req.email, req.password)
+            call.respond(
+                HttpStatusCode.OK,
+                TokenResponse(
+                    accessToken = tokens.accessToken,
+                    refreshToken = tokens.refreshToken,
+                    tokenType = "Bearer",
+                    expiresIn = tokens.expiresIn
                 )
-            } catch (e: IllegalArgumentException) {
-                call.respond(
-                    HttpStatusCode.Unauthorized,
-                    mapOf("error" to (e.message ?: "Invalid credentials"))
-                )
-            }
+            )
+        } catch (e: IllegalArgumentException) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to (e.message ?: "Invalid credentials"))
+            )
         }
+    }
 
-        authenticate("auth-jwt") {
-            get("/me") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.subject ?: return@get call.respond(HttpStatusCode.Unauthorized)
+    authenticate("auth-jwt") {
+        get("/me") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.subject ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
-                // In a real app, you might want to fetch the user from the database
-                // For now, we'll just return the user ID from the token
-                call.respond(
-                    HttpStatusCode.OK,
-                    mapOf(
-                        "userId" to userId,
-                        "message" to "This is a protected endpoint. Your user ID is: $userId"
-                    )
+            // In a real app, you might want to fetch the user from the database
+            // For now, we'll just return the user ID from the token
+            call.respond(
+                HttpStatusCode.OK,
+                mapOf(
+                    "userId" to userId,
+                    "message" to "This is a protected endpoint. Your user ID is: $userId"
                 )
-            }
+            )
         }
+    }
 
-        // Email verification endpoint
-        get("/verify-email") {
-            val token = call.request.queryParameters["token"]
-                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing token"))
+    // Email verification endpoint
+    get("/verify-email") {
+        val token = call.request.queryParameters["token"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Missing token"))
 
-            val isVerified = authService.verifyEmail(token)
-            if (isVerified) {
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully"))
-            } else {
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid or expired verification token"))
-            }
+        val isVerified = authService.verifyEmail(token)
+        if (isVerified) {
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Email verified successfully"))
+        } else {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid or expired verification token"))
         }
     }
 }

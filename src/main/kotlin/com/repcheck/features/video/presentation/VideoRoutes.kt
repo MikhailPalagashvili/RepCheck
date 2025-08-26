@@ -1,38 +1,33 @@
 package com.repcheck.features.video.presentation
 
+import com.repcheck.common.exceptions.BadRequestException
+import com.repcheck.common.exceptions.ForbiddenException
+import com.repcheck.common.exceptions.NotFoundException
+import com.repcheck.common.extensions.getUserId
 import com.repcheck.features.video.domain.service.VideoService
+import com.repcheck.features.video.presentation.dto.UploadCompleteRequest
+import com.repcheck.features.video.presentation.dto.toResponse
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.videoRoutes(videoService: VideoService) {
-    route("/videos") {
-
-        /**
-         * Generate a presigned URL for direct video upload
-         */
+fun Route.videoRoutes(videoService: VideoService) = route("/videos") {
+    authenticate("auth-jwt") {
         post("/presign") {
-            // Get authenticated user ID from JWT
-            val userId = call.principal<JWTPrincipal>()!!
-                .payload.getClaim("userId").asLong()
-
-            // Get optional workoutSetId from query parameters
+            val userId = call.getUserId()
             val workoutSetId = call.parameters["workoutSetId"]?.toLongOrNull()
-                ?: error("Missing workoutSetId")
+                ?: throw BadRequestException("Missing workoutSetId")
 
-            // Optional file extension, default to "mp4"
             val fileExtension = call.parameters["fileExtension"] ?: "mp4"
-
-            // Create video record and get presigned URL
             val (video, uploadUrl) = videoService.createVideoAndGetUploadUrl(
                 userId = userId,
                 workoutSetId = workoutSetId,
                 fileExtension = fileExtension
             )
 
-            // Respond with video info + presigned URL
             call.respond(
                 mapOf(
                     "videoId" to video.id,
@@ -42,6 +37,28 @@ fun Route.videoRoutes(videoService: VideoService) {
             )
         }
 
-        // Add more video-related routes here (delete, list, mark processed, etc.)
+        post("/complete") {
+            call.getUserId() // Just to verify authentication
+            val request = call.receive<UploadCompleteRequest>()
+
+            val video = videoService.completeVideoUpload(
+                videoId = request.videoId,
+                fileSizeBytes = request.fileSizeBytes,
+                durationSeconds = request.durationSeconds
+            ) ?: throw NotFoundException("Video not found")
+
+            call.respond(HttpStatusCode.OK, video.toResponse())
+        }
+
+        get("/{id}") {
+            val userId = call.getUserId()
+            val videoId = call.parameters["id"]?.toLongOrNull() ?: throw BadRequestException("Invalid video ID")
+            val video = videoService.getVideo(videoId)
+                ?: throw NotFoundException("Video not found")
+            if (video.userId != userId) {
+                throw ForbiddenException("Not authorized to access this video")
+            }
+            call.respond(video.toResponse())
+        }
     }
 }

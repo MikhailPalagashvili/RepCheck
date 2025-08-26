@@ -37,7 +37,7 @@ fun Application.module() {
     Database.init(dbConfig)
     runFlywayMigrations()
 
-    // Install Koin
+    // Install Koin first to get dependencies
     koin {
         modules(appModule(environment.config))
     }
@@ -49,32 +49,36 @@ fun Application.module() {
 
     // Configure application features
     configureFeatures()
-
-    // Configure authentication
+    
+    // Configure authentication before any routes
     install(Authentication) {
         jwt("auth-jwt") {
-            realm = "repcheck-realm"
+            realm = jwtProvider.audience
             verifier(jwtProvider.verifier())
             validate { credential ->
-                if (credential.payload.audience.contains(jwtProvider.audience)) JWTPrincipal(credential.payload)
-                else null
+                if (credential.payload.audience.contains(jwtProvider.audience)) {
+                    JWTPrincipal(credential.payload)
+                } else {
+                    null
+                }
             }
         }
     }
 
-    // Routing
+    // Install Routing after authentication is configured
     install(Routing) {
         // Public health check endpoint
         healthRoutes()
 
-        // Auth routes
-        route("/api/v1/auth") {
+        // API routes under /api/v1
+        route("/api/v1") {
+            // Public auth routes
             authRoutes(authService)
-        }
 
-        // Protected video routes
-        authenticate("auth-jwt") {
-            videoRoutes(videoService)
+            // Protected routes
+            authenticate("auth-jwt") {
+                videoRoutes(videoService)
+            }
         }
     }
 }
