@@ -18,7 +18,6 @@ class AuthService(
 
     data class Tokens(val accessToken: String, val refreshToken: String, val expiresIn: Long)
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun close() {
         try {
             job.cancel("AuthService is shutting down")
@@ -40,7 +39,7 @@ class AuthService(
     suspend fun login(email: String, password: String): Tokens {
         val normalized = email.trim().lowercase()
         val user = userRepository.findByEmail(normalized) ?: throw IllegalArgumentException("Invalid credentials")
-        
+
         val result = BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash)
         require(result.verified) { "Invalid credentials" }
         require(user.isVerified) { "Please verify your email address before logging in" }
@@ -52,7 +51,7 @@ class AuthService(
         val accessToken = jwt.createToken(userId.toString())
         val refreshToken = UUID.randomUUID().toString()
         // TODO: Store refresh token in database with user association
-        
+
         return Tokens(accessToken, refreshToken, jwt.expiresSeconds)
     }
 
@@ -105,17 +104,28 @@ class AuthService(
     }
 }
 
-interface EmailService {
+/**
+ * Service for sending emails
+ */
+fun interface EmailService {
+    /**
+     * Sends a verification email to the specified address
+     * @param email The recipient's email address
+     * @param token The verification token to include in the email
+     * @param expiresAt When the verification token expires
+     */
     fun sendVerificationEmail(email: String, token: String, expiresAt: Date)
 }
 
 class ConsoleEmailService : EmailService {
     override fun sendVerificationEmail(email: String, token: String, expiresAt: Date) {
-        println("""
+        println(
+            """
             Sending verification email to: $email
             Verification token: $token
             Expires at: $expiresAt
             Verification link: http://localhost:8080/api/auth/verify?token=$token
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }

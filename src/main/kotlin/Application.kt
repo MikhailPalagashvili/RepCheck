@@ -1,17 +1,24 @@
 package com.repcheck
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import com.repcheck.config.AppConfig
+import com.repcheck.config.S3Config
 import com.repcheck.db.Database
 import com.repcheck.di.AuthConfig
 import com.repcheck.di.appModule
-import com.repcheck.di.configureAuth
 import com.repcheck.features.user.application.service.AuthService
 import com.repcheck.features.user.infrastructure.web.authRoutes
+import com.repcheck.features.video.presentation.videoRoutes
+import com.repcheck.infrastructure.s3.S3ClientProvider
+import com.repcheck.infrastructure.s3.S3UploadService
 import com.repcheck.infrastructure.web.plugins.installMonitoring
 import com.repcheck.infrastructure.web.plugins.installSerialization
 import com.repcheck.infrastructure.web.routes.healthRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.*
@@ -45,21 +52,52 @@ fun Application.module() {
     val authConfig = get<AuthConfig>()
     val authService = get<AuthService>()
 
+    // Initialize S3 configuration
+    val s3Config = S3Config.fromConfig(environment.config)
+    S3ClientProvider.initialize(s3Config)
+
+    val s3UploadService = S3UploadService(
+        bucketName = s3Config.bucketName,
+        presignedUrlExpiry = s3Config.presignedUrlExpiry
+    )
+
     // Configure application features
     configureFeatures()
 
-    // Configure authentication
-    configureAuth(authConfig)
+    // Configure authentication - This must be called before any routes that use it
+    install(Authentication) {
+        jwt("auth-jwt") {
+            realm = authConfig.realm
+            verifier {
+                JWT
+                    .require(Algorithm.HMAC256(authConfig.secret))
+                    .withAudience(authConfig.audience)
+                    .withIssuer(authConfig.issuer)
+                    .build()
+            }
+            validate { credential ->
+                if (credential.payload.audience.contains(authConfig.audience)) {
+                    JWTPrincipal(credential.payload)
+                } else {
+                    null
+                }
+            }
+        }
+    }
 
-    // Setup routing
+    // Setup routing with authentication
     install(Routing) {
-        // Public health check endpoint - no rate limiting
+        // Public health check endpoint - no authentication needed
         healthRoutes()
 
-        // Auth routes with rate limiting
+        // Auth routes
         route("/api/v1/auth") {
-            // Install auth routes
             authRoutes(authService)
+        }
+
+        // Protected routes
+        authenticate("auth-jwt") {
+            videoRoutes(s3UploadService)
         }
     }
 }

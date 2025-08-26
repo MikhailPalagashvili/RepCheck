@@ -38,4 +38,4 @@ class HealthCheckTest : BaseTest() {
             assertEquals(HttpStatusCode.OK, response.status)
         }
     }
-    }
+}
