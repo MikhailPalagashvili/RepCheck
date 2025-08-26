@@ -1,6 +1,6 @@
 package com.repcheck.testutils
 
-import com.repcheck.di.appModule
+import com.repcheck.infrastructure.di.appModule
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*

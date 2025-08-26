@@ -1,9 +1,7 @@
 package com.repcheck.features.video.presentation
 
 import com.repcheck.infrastructure.s3.S3UploadService
-import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.util.*

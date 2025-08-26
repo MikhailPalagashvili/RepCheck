@@ -3,7 +3,7 @@ package com.repcheck.features.user.application.service
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
-import com.repcheck.config.AppConfig
+import com.repcheck.infrastructure.config.AppConfig
 import java.util.*
 
 class JwtProvider {
@@ -12,7 +12,7 @@ class JwtProvider {
 
     private val issuer: String = config.issuer
     private val audience: String = config.audience
-    val expiresSeconds: Long = config.expiresSeconds
+    val expiresSeconds: Long = config.expiresInSeconds
 
     fun verifier(): JWTVerifier = JWT
         .require(algo)

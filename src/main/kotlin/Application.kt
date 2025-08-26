@@ -2,14 +2,14 @@ package com.repcheck
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.repcheck.config.AppConfig
-import com.repcheck.config.S3Config
-import com.repcheck.db.Database
-import com.repcheck.di.AuthConfig
-import com.repcheck.di.appModule
 import com.repcheck.features.user.application.service.AuthService
 import com.repcheck.features.user.infrastructure.web.authRoutes
 import com.repcheck.features.video.presentation.videoRoutes
+import com.repcheck.infrastructure.config.AppConfig
+import com.repcheck.infrastructure.config.S3Config
+import com.repcheck.infrastructure.di.AuthConfig
+import com.repcheck.infrastructure.di.appModule
+import com.repcheck.infrastructure.persistence.db.Database
 import com.repcheck.infrastructure.s3.S3ClientProvider
 import com.repcheck.infrastructure.s3.S3UploadService
 import com.repcheck.infrastructure.web.plugins.installMonitoring
@@ -25,6 +25,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.routing.*
 import org.flywaydb.core.Flyway
+import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.koin
 
@@ -43,9 +44,25 @@ fun Application.module() {
     // Run migrations
     runFlywayMigrations()
 
-    // Install Koin
+    // Get JWT secret from environment or use a default for development
+    val jwtSecret = environment.config.propertyOrNull("jwt.secret")?.getString()
+        ?: "default-dev-secret-replace-in-production"
+
+    // Install Koin with configuration
     koin {
-        modules(appModule)
+        modules(
+            module {
+                single {
+                    AuthConfig(
+                        jwtAudience = "repcheck-app",
+                        jwtRealm = "repcheck-realm",
+                        jwtIssuer = "repcheck",
+                        jwtSecret = jwtSecret
+                    )
+                }
+            },
+            appModule
+        )
     }
 
     // Get dependencies from Koin
@@ -67,16 +84,16 @@ fun Application.module() {
     // Configure authentication - This must be called before any routes that use it
     install(Authentication) {
         jwt("auth-jwt") {
-            realm = authConfig.realm
+            realm = authConfig.jwtRealm
             verifier {
                 JWT
-                    .require(Algorithm.HMAC256(authConfig.secret))
-                    .withAudience(authConfig.audience)
-                    .withIssuer(authConfig.issuer)
+                    .require(Algorithm.HMAC256(authConfig.jwtSecret))
+                    .withAudience(authConfig.jwtAudience)
+                    .withIssuer(authConfig.jwtIssuer)
                     .build()
             }
             validate { credential ->
-                if (credential.payload.audience.contains(authConfig.audience)) {
+                if (credential.payload.audience.contains(authConfig.jwtAudience)) {
                     JWTPrincipal(credential.payload)
                 } else {
                     null

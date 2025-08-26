@@ -1,6 +1,6 @@
 package com.repcheck.infrastructure.web.routes
 
-import com.repcheck.db.Database
+import com.repcheck.infrastructure.persistence.db.Database
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

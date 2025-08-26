@@ -1,10 +1,9 @@
 package com.repcheck.infrastructure.s3
 
-import com.repcheck.config.S3Config
+import com.repcheck.infrastructure.config.S3Config
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
-import java.net.URI
 
 object S3ClientProvider {
     private lateinit var config: S3Config

@@ -1,6 +1,6 @@
-package com.repcheck.db
+package com.repcheck.infrastructure.persistence.db
 
-import com.repcheck.config.DatabaseConfig
+import com.repcheck.infrastructure.config.DatabaseConfig
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory

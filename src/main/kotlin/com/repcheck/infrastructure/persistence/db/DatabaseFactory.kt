@@ -1,6 +1,6 @@
-package com.repcheck.db
+package com.repcheck.infrastructure.persistence.db
 
-import com.repcheck.config.DatabaseConfig
+import com.repcheck.infrastructure.config.DatabaseConfig
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.Database
