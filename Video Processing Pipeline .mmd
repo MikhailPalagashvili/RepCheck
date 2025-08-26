@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant User
+    participant API
+    participant Queue
+    participant Worker
+    participant S3
+    participant DB
+
+    User->>API: Upload video
+    API->>S3: Get pre-signed URL
+    API->>DB: Create video record (status=UPLOADING)
+    API-->>User: Return upload URL
+    User->>S3: Upload video directly
+    S3-->>API: Upload complete
+    API->>Queue: Add process job
+    Queue->>Worker: Process video
+    Worker->>S3: Download video
+    Worker->>AI: Analyze video
+    Worker->>DB: Update status (PROCESSING)
+    AI-->>Worker: Return analysis
+    Worker->>DB: Save results (status=COMPLETED)
+    Worker->>User: Send notification

@@ -11,7 +11,7 @@ class JwtProvider {
     private val algo = Algorithm.HMAC256(config.secret)
 
     private val issuer: String = config.issuer
-    private val audience: String = config.audience
+    val audience: String = config.audience
     val expiresSeconds: Long = config.expiresInSeconds
 
     fun verifier(): JWTVerifier = JWT

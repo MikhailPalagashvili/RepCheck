@@ -1,30 +1,47 @@
 package com.repcheck.features.video.presentation
 
-import com.repcheck.infrastructure.s3.S3UploadService
+import com.repcheck.features.video.domain.service.VideoService
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.util.*
 
-fun Route.videoRoutes(s3UploadService: S3UploadService) {
+fun Route.videoRoutes(videoService: VideoService) {
     route("/videos") {
-        post("/presign") {
-            val videoId = call.parameters["videoId"] ?: UUID.randomUUID().toString()
-            val contentType = call.parameters["contentType"] ?: "video/mp4"
 
-            val uploadUrl = s3UploadService.generateVideoUploadUrl(
-                videoId = videoId,
-                fileExtension = contentType.split('/').last(),
-                contentType = contentType
+        /**
+         * Generate a presigned URL for direct video upload
+         */
+        post("/presign") {
+            // Get authenticated user ID from JWT
+            val userId = call.principal<JWTPrincipal>()!!
+                .payload.getClaim("userId").asLong()
+
+            // Get optional workoutSetId from query parameters
+            val workoutSetId = call.parameters["workoutSetId"]?.toLongOrNull()
+                ?: error("Missing workoutSetId")
+
+            // Optional file extension, default to "mp4"
+            val fileExtension = call.parameters["fileExtension"] ?: "mp4"
+
+            // Create video record and get presigned URL
+            val (video, uploadUrl) = videoService.createVideoAndGetUploadUrl(
+                userId = userId,
+                workoutSetId = workoutSetId,
+                fileExtension = fileExtension
             )
 
+            // Respond with video info + presigned URL
             call.respond(
                 mapOf(
-                    "uploadUrl" to uploadUrl.toString(),
-                    "videoId" to videoId,
-                    "contentType" to contentType
+                    "videoId" to video.id,
+                    "fileExtension" to fileExtension,
+                    "uploadUrl" to uploadUrl.toString()
                 )
             )
         }
+
+        // Add more video-related routes here (delete, list, mark processed, etc.)
     }
 }
