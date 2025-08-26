@@ -1,7 +1,6 @@
 package com.repcheck.features.health
 
 import com.repcheck.infrastructure.web.routes.healthRoutes
-import com.repcheck.testutils.BaseTest
 import com.repcheck.testutils.TestConfig.withConfiguredTestApplication
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -12,7 +11,7 @@ import org.junit.jupiter.api.TestInstance
 import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class HealthCheckTest : BaseTest() {
+class HealthCheckTest {
     @Test
     fun `test health check endpoint`() = runBlocking {
         withConfiguredTestApplication {
