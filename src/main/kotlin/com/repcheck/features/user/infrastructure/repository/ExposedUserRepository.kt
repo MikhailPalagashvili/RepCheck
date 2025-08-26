@@ -57,8 +57,8 @@ class ExposedUserRepository : UserRepository {
         val now = Instant.now()
         val result = Users.update(
             where = {
-                (Users.verificationToken eq token) and 
-                (Users.verificationTokenExpiresAt greater now)
+                (Users.verificationToken eq token) and
+                        (Users.verificationTokenExpiresAt greater now)
             }
         ) {
             it[isVerified] = true

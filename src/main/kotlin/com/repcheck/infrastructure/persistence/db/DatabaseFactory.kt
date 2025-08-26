@@ -40,10 +40,4 @@ object DatabaseFactory {
             }
         }
     }
-
-    // Helper function for transactions
-    fun <T> query(block: () -> T): T = transaction {
-        addLogger(StdOutSqlLogger)
-        block()
-    }
 }

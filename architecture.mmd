@@ -1,65 +1,57 @@
-flowchart TB
-%% Components
-    subgraph Mobile_App[Mobile App - KMM]
-        A1[Workout and Set Logging]
-        A2[Video Recording]
-        A3[On-device ML - MediaPipe and TFLite]
-        A4[Offline Storage - SQLite]
-        A5[Sync Manager]
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffd8d8', 'primaryBorderColor': '#ff9e9e'}}}%%
+graph TD
+%% Clients
+    Mobile["📱 Mobile App (KMM)"]
+
+%% Main Components
+    subgraph "RepCheck - AI Workout Analysis"
+        API["API Gateway (Ktor)"]
+        Auth["🔐 Auth Service"]
+        WorkoutSvc["💪 Workout Service"]
+        VideoSvc["🎥 Video Service"]
+        AI["🧠 AI Analysis"]
     end
 
-    subgraph Backend[Ktor Backend API]
-        B0[API Gateway and Routing]
-        B1[Auth Service - JWT and Refresh]
-        B2[Workout Service]
-        B3[Video Service - Presigned S3 URLs and Metadata]
-        B4[PR Service]
-    end
+%% Data Stores
+    DB[("📊 PostgreSQL")]
+    S3[("💾 S3 Storage")]
+    Q[("🔄 Queue")]
 
-    subgraph Infra[Core Infra]
-        DB[(PostgreSQL)]
-        S3[(S3 - Video Objects)]
-        Q[[Async Queue - SQS or RabbitMQ]]
-    end
+%% External Services
+    Email["📧 Email Service"]
 
-    subgraph AI[AI Video Service]
-        P1[Preprocess - resize and frames]
-        P2[Inference - Depth, Bar Path, Symmetry]
-        P3[Store Feedback JSON]
-    end
+%% Mobile Flows
+    Mobile -->|1. All Requests| API
+    API -->|2. Auth Request| Auth
+    Auth -->|JWT| API -->|3. Return Token| Mobile
 
-    subgraph Observability[Ops]
-        L1[Logs - Logback and ELK]
-        M1[Metrics - Prometheus and Grafana]
-    end
+    Mobile -->|4. Upload Request| API
+    API -->|5. Forward to| VideoSvc
+    VideoSvc -->|6. Get URL| S3
+    API -->|7. Return URL| Mobile
+    Mobile -->|8. Upload| S3
 
-%% Mobile to Backend
-    A5 -->|Sync Workouts, Sets, Videos| B0
-    B0 --> B1
-    B0 --> B2
-    B0 --> B3
-    B0 --> B4
+    VideoSvc -->|9. Queue| Q
+    Q -->|10. Process| AI
+    AI -->|11. Store| DB
+    AI -->|12. Update| VideoSvc
 
-%% Backend to DB
-    B1 --> DB
-    B2 --> DB
-    B3 --> DB
-    B4 --> DB
+%% Data Access
+    API -->|CRUD| DB
+    WorkoutSvc --> DB
+    VideoSvc --> DB
+    Auth --> DB
+    API -.->|Email| Email
 
-%% Video upload path
-    B3 -->|Generate Presigned URL| S3
-    A2 -->|Direct Upload via Presigned URL| S3
-    B3 -->|Enqueue AI Job| Q
+%% Styling
+    classDef client fill:#f9f,stroke:#333,stroke-width:2px
+    classDef service fill:#bbf,stroke:#333,stroke-width:2px
+    classDef storage fill:#bfb,stroke:#333,stroke-width:2px
+    classDef external fill:#fbb,stroke:#333,stroke-width:2px
+    classDef queue fill:#ffd,stroke:#333,stroke-width:2px
 
-%% AI Service
-    Q --> P1 --> P2 --> P3
-    P3 -->|Write ai_feedback| DB
-
-%% Client fetches feedback
-    A1 -->|Poll or Fetch Feedback| B0 --> DB
-
-%% Observability
-    B0 --> L1
-    B0 --> M1
-    AI --> L1
-    AI --> M1
+    class Mobile client
+    class API,Auth,WorkoutSvc,VideoSvc,AI service
+    class DB,S3 storage
+    class Q queue
+    class Email external

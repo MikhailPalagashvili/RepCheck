@@ -11,24 +11,6 @@ class S3UploadService(
     private val presignedUrlExpiry: Duration,
     private val s3Presigner: S3Presigner = S3ClientProvider.s3Presigner
 ) {
-    fun generatePresignedUrl(
-        objectKey: String,
-        contentType: String = "video/mp4"
-    ): URL {
-        val request = PutObjectRequest.builder()
-            .bucket(bucketName)
-            .key(objectKey)
-            .contentType(contentType)
-            .build()
-
-        val presignRequest = PutObjectPresignRequest.builder()
-            .signatureDuration(presignedUrlExpiry)
-            .putObjectRequest(request)
-            .build()
-
-        return s3Presigner.presignPutObject(presignRequest).url()
-    }
-
     fun generateVideoUploadUrl(
         videoId: String,
         fileExtension: String = "mp4",
@@ -36,5 +18,18 @@ class S3UploadService(
     ): URL {
         val objectKey = "videos/$videoId.$fileExtension"
         return generatePresignedUrl(objectKey, contentType)
+    }
+
+    private fun generatePresignedUrl(objectKey: String, contentType: String): URL {
+        val request = PutObjectRequest.builder()
+            .bucket(bucketName)
+            .key(objectKey)
+            .contentType(contentType)
+            .build()
+        val presignRequest = PutObjectPresignRequest.builder()
+            .signatureDuration(presignedUrlExpiry)
+            .putObjectRequest(request)
+            .build()
+        return s3Presigner.presignPutObject(presignRequest).url()
     }
 }

@@ -7,11 +7,11 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 
 object S3ClientProvider {
     private lateinit var config: S3Config
-    
+
     fun initialize(s3Config: S3Config) {
         config = s3Config
     }
-    
+
     private val region: Region
         get() = Region.of(config.region)
 
