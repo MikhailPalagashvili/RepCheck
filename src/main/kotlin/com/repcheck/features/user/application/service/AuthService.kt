@@ -3,9 +3,9 @@ package com.repcheck.features.user.application.service
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.repcheck.features.user.domain.model.User
 import com.repcheck.features.user.domain.repository.UserRepository
+import kotlinx.coroutines.*
 import java.time.Instant
 import java.util.*
-import kotlinx.coroutines.*
 
 class AuthService(
     private val userRepository: UserRepository,

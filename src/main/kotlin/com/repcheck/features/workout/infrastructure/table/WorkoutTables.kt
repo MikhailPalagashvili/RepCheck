@@ -2,9 +2,9 @@ package com.repcheck.features.workout.infrastructure.table
 
 import com.repcheck.features.workout.domain.model.LiftType
 import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.dao.id.LongIdTable as IdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.Instant
+import org.jetbrains.exposed.dao.id.LongIdTable as IdTable
 
 object Lifts : IdTable("lifts") {
     val type = enumerationByName<LiftType>("type", 20)

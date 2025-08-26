@@ -1,9 +1,9 @@
 package com.repcheck.features.ai.infrastructure.table
 
+import com.repcheck.features.ai.domain.model.AnalysisResults
+import com.repcheck.features.ai.domain.model.AnalysisStatus
 import com.repcheck.features.video.infrastructure.table.WorkoutVideos
 import com.repcheck.features.workout.infrastructure.table.WorkoutSets
-import com.repcheck.features.ai.domain.model.AnalysisStatus
-import com.repcheck.features.ai.domain.model.AnalysisResults
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table

@@ -4,7 +4,6 @@ import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import com.repcheck.features.video.domain.repository.VideoRepository
 import com.repcheck.features.video.infrastructure.table.WorkoutVideos
-import com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq

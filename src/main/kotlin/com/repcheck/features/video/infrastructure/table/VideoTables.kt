@@ -3,9 +3,9 @@ package com.repcheck.features.video.infrastructure.table
 import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.workout.infrastructure.table.WorkoutSets
 import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.dao.id.LongIdTable as IdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.Instant
+import org.jetbrains.exposed.dao.id.LongIdTable as IdTable
 
 object WorkoutVideos : IdTable("workout_videos") {
     val userId = long("user_id")

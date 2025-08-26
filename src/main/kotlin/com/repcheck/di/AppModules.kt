@@ -15,6 +15,9 @@ import com.repcheck.features.video.domain.repository.VideoRepository
 import com.repcheck.features.video.infrastructure.repository.ExposedVideoRepository
 import com.repcheck.features.workout.domain.repository.WorkoutRepository
 import com.repcheck.features.workout.infrastructure.repository.ExposedWorkoutRepository
+import com.repcheck.infrastructure.storage.S3Config
+import com.repcheck.infrastructure.storage.S3ClientFactory
+import com.repcheck.infrastructure.storage.S3Service
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -45,6 +48,18 @@ val appModule = module {
             jwt = get(),
             emailService = get(),
             coroutineScope = CoroutineScope(Dispatchers.IO)
+        )
+    }
+
+    // Storage Services
+    single { S3Config.createFromEnv() }
+    single { S3ClientFactory.createS3Client(get()) }
+    single { S3ClientFactory.createS3Presigner(get()) }
+    single {
+        S3Service(
+            s3Client = get(),
+            s3Presigner = get(),
+            config = get()
         )
     }
 
