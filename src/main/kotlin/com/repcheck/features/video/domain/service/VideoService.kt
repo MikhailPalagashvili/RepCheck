@@ -3,14 +3,19 @@ package com.repcheck.features.video.domain.service
 import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import com.repcheck.features.video.domain.repository.VideoRepository
+import com.repcheck.infrastructure.s3.S3ClientProvider
 import com.repcheck.infrastructure.s3.S3UploadService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import software.amazon.awssdk.services.s3.S3Client
 import java.net.URL
 import java.util.*
 
 class VideoService(
     private val videoRepository: VideoRepository,
     private val s3UploadService: S3UploadService,
-    private val videoProcessor: VideoProcessor
+    private val videoProcessor: VideoProcessor,
+    private val s3Client: S3Client = S3ClientProvider.s3Client
 ) {
     /**
      * Creates a video record and returns a presigned URL for direct upload
@@ -34,49 +39,43 @@ class VideoService(
 
     fun getVideo(videoId: Long): WorkoutVideo? = videoRepository.findById(videoId)
 
-    /**
-     * Complete the video upload process by updating metadata and status
-     * Note: This method doesn't use a transaction as the repository methods handle their own transactions
-     * @param videoId ID of the video to update
-     * @param fileSizeBytes Size of the uploaded file in bytes
-     * @param durationSeconds Duration of the video in seconds
-     * @return The updated video or null if not found
-     */
-    suspend fun completeVideoUpload(
-        videoId: Long,
-        fileSizeBytes: Long,
-        durationSeconds: Int
-    ): WorkoutVideo? {
-        // Update video metadata
-        videoRepository.updateFileSize(videoId, fileSizeBytes)
-        videoRepository.updateDuration(videoId, durationSeconds)
-        videoRepository.updateStatus(videoId, VideoStatus.UPLOADED)
-        
-        // Get the updated video
-        val video = videoRepository.findById(videoId) ?: return null
-        
-        // Start processing the video asynchronously
-        processVideoInBackground(video)
-        
-        return video
+    fun findByS3Key(s3Key: String): WorkoutVideo? {
+        return videoRepository.findByS3Key(s3Key)
     }
-    
-    private suspend fun processVideoInBackground(video: WorkoutVideo) {
+
+    suspend fun handleS3UploadEvent(videoId: Long, s3Key: String, bucket: String) {
+        val video = videoRepository.findById(videoId) ?: return
+        if (video.status != VideoStatus.UPLOADING) return
+
+        withContext(Dispatchers.IO) {
+            try {
+                val response = s3Client.headObject {
+                    it.bucket(bucket).key(s3Key)
+                }
+                videoRepository.updateFileSize(videoId, response.contentLength())
+                processVideo(videoId)
+            } catch (e: Exception) {
+                videoRepository.updateStatus(videoId, VideoStatus.FAILED)
+            }
+        }
+    }
+
+    private suspend fun processVideo(videoId: Long) {
         try {
-            // Update status to PROCESSING
-            videoRepository.updateStatus(video.id, VideoStatus.PROCESSING)
-            
-            // Process the video by invoking the function
+            val video = videoRepository.findById(videoId) ?: return
+            videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
+
+            // Process the video
             val processedVideo = videoProcessor(video)
-            
+
             // Update status to PROCESSED
-            videoRepository.updateStatus(processedVideo.id, VideoStatus.PROCESSED)
-            
+            videoRepository.updateStatus(videoId, VideoStatus.PROCESSED)
+            // Save any processed video data
+            // ...
+
         } catch (e: Exception) {
-            // Update status to FAILED if there's an error
-            videoRepository.updateStatus(video.id, VideoStatus.FAILED)
-            // TODO: Add error logging
-            e.printStackTrace()
+            videoRepository.updateStatus(videoId, VideoStatus.FAILED)
+            // Consider adding error logging here
         }
     }
 }

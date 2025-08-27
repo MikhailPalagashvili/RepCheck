@@ -90,6 +90,10 @@ class ExposedVideoRepository : VideoRepository {
             .map(::rowToDomain)
     }
 
+    override fun findByS3Key(s3Key: String): WorkoutVideo? {
+        TODO("Not yet implemented")
+    }
+
     override fun delete(id: Long): Boolean = transaction {
         WorkoutVideos.deleteWhere { WorkoutVideos.id eq EntityID(id, WorkoutVideos) } > 0
     }

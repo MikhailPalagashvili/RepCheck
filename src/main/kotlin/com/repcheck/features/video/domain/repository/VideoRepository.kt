@@ -25,6 +25,8 @@ interface VideoRepository {
     fun findBySet(workoutSetId: Long): List<WorkoutVideo>
 
     fun findByUser(userId: Long, limit: Int = 50, offset: Long = 0): List<WorkoutVideo>
+    
+    fun findByS3Key(s3Key: String): WorkoutVideo?
 
     fun delete(id: Long): Boolean
 }

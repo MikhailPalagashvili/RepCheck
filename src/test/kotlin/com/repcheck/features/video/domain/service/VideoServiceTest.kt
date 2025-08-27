@@ -3,14 +3,18 @@ package com.repcheck.features.video.domain.service
 import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import com.repcheck.features.video.domain.repository.VideoRepository
+import com.repcheck.infrastructure.config.S3Config
+import com.repcheck.infrastructure.s3.S3ClientProvider
 import com.repcheck.infrastructure.s3.S3UploadService
-import io.mockk.*
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.net.URL
+import java.time.Duration
 
 @ExperimentalCoroutinesApi
 class VideoServiceTest {
@@ -23,6 +27,14 @@ class VideoServiceTest {
 
     @BeforeEach
     fun setUp() {
+        // Initialize S3ClientProvider with test config
+        val testConfig = S3Config(
+            bucketName = "test-bucket",
+            presignedUrlExpiry = Duration.ofMinutes(15),
+            region = "us-east-1"
+        )
+        S3ClientProvider.initialize(testConfig)
+
         videoService = VideoService(videoRepository, s3UploadService, videoProcessor)
     }
 
@@ -70,72 +82,5 @@ class VideoServiceTest {
         // Then
         Assertions.assertEquals(video, result)
         verify { videoRepository.findById(videoId) }
-    }
-
-    @Test
-    fun `completeVideoUpload should update metadata, status, and process video`() = runTest {
-        // Given
-        val videoId = 1L
-        val fileSize = 1024L
-        val duration = 30
-        val video = WorkoutVideo(
-            id = videoId,
-            userId = 1L,
-            workoutSetId = 1L,
-            s3Key = "videos/test.mp4",
-            s3Bucket = "test-bucket",
-            status = VideoStatus.UPLOADING
-        )
-
-        coEvery { videoRepository.updateFileSize(videoId, fileSize) } returns true
-        coEvery { videoRepository.updateDuration(videoId, duration) } returns true
-        coEvery { videoRepository.updateStatus(videoId, any()) } returns true
-        coEvery { videoRepository.findById(videoId) } returns video
-        coEvery { videoProcessor(video) } returns video
-
-        // When
-        val result = videoService.completeVideoUpload(videoId, fileSize, duration)
-
-        // Then
-        Assertions.assertNotNull(result)
-        Assertions.assertEquals(videoId, result?.id)
-
-        coVerifySequence {
-            videoRepository.updateFileSize(videoId, fileSize)
-            videoRepository.updateDuration(videoId, duration)
-            videoRepository.updateStatus(videoId, VideoStatus.UPLOADED)
-            videoRepository.findById(videoId)
-            videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
-            videoProcessor(video)
-            videoRepository.updateStatus(videoId, VideoStatus.PROCESSED)
-        }
-    }
-
-    @Test
-    fun `completeVideoUpload should mark FAILED if processing throws exception`() = runTest {
-        // Given
-        val videoId = 1L
-        val fileSize = 1024L
-        val duration = 30
-        val video = WorkoutVideo(
-            id = videoId,
-            userId = 1L,
-            workoutSetId = 1L,
-            s3Key = "videos/test.mp4",
-            s3Bucket = "test-bucket",
-            status = VideoStatus.UPLOADING
-        )
-
-        coEvery { videoRepository.updateFileSize(videoId, fileSize) } returns true
-        coEvery { videoRepository.updateDuration(videoId, duration) } returns true
-        coEvery { videoRepository.updateStatus(videoId, any()) } returns true
-        coEvery { videoRepository.findById(videoId) } returns video
-        coEvery { videoProcessor(video) } throws RuntimeException("Processing error")
-
-        // When
-        videoService.completeVideoUpload(videoId, fileSize, duration)
-
-        // Then
-        coVerify { videoRepository.updateStatus(videoId, VideoStatus.FAILED) }
     }
 }

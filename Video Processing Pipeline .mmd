@@ -1,22 +1,66 @@
 sequenceDiagram
-    participant User
-    participant API
-    participant Queue
-    participant Worker
-    participant S3
-    participant DB
+    participant Mobile as 📱 Mobile App (KMM)
+    participant API as 🌐 API Gateway (Ktor)
+    participant Auth as 🔐 Auth Service
+    participant VideoSvc as 🎥 Video Service
+    participant Queue as 🔄 Queue
+    participant Worker as 👷 Worker
+    participant S3 as 💾 S3 Storage
+    participant AI as 🧠 AI Analysis
+    participant DB as 📊 PostgreSQL
+    participant Email as 📧 Email Service
 
-    User->>API: Upload video
-    API->>S3: Get pre-signed URL
-    API->>DB: Create video record (status=UPLOADING)
-    API-->>User: Return upload URL
-    User->>S3: Upload video directly
-    S3-->>API: Upload complete
-    API->>Queue: Add process job
-    Queue->>Worker: Process video
-    Worker->>S3: Download video
-    Worker->>AI: Analyze video
-    Worker->>DB: Update status (PROCESSING)
-    AI-->>Worker: Return analysis
-    Worker->>DB: Save results (status=COMPLETED)
-    Worker->>User: Send notification
+%% Authentication Flow
+    Mobile->>+API: 1. Login/Register
+    API->>+Auth: 2. Authenticate
+    Auth-->>-API: 3. JWT Token
+    API-->>-Mobile: 4. Return Token
+
+%% Video Upload Flow
+    Mobile->>+API: 5. Request Upload URL
+    API->>+Auth: 6. Validate Token
+    Auth-->>-API: 7. User ID
+    API->>+VideoSvc: 8. Create Upload Session
+    VideoSvc->>+S3: 9. Generate Pre-signed URL
+    S3-->>-VideoSvc: 10. Pre-signed URL
+    VideoSvc->>+DB: 11. Create Video Record (UPLOADING)
+    DB-->>-VideoSvc: 12. Record Created
+    VideoSvc-->>-API: 13. Upload URL & Video ID
+    API-->>-Mobile: 14. Return Upload URL
+
+%% Direct Upload & Processing
+    Mobile->>+S3: 15. Upload Video (Direct)
+    S3-->>-Mobile: 16. Upload Complete
+    S3->>+VideoSvc: 17. S3 Event (s3:ObjectCreated:*)
+    VideoSvc->>+Queue: 18. Add Process Job
+    Queue-->>-VideoSvc: 19. Job Queued
+    VideoSvc->>+DB: 20. Update Status (QUEUED)
+    DB-->>-VideoSvc: 21. Status Updated
+
+%% Background Processing
+    Worker->>+Queue: 22. Poll for Jobs
+    Queue-->>-Worker: 23. Next Job
+    Worker->>+DB: 24. Get Video Details
+    DB-->>-Worker: 25. Video Metadata
+    Worker->>+S3: 26. Download Video
+    S3-->>-Worker: 27. Video File
+    Worker->>+DB: 28. Update Status (PROCESSING)
+    DB-->>-Worker: 29. Status Updated
+    Worker->>+AI: 30. Analyze Video
+    AI-->>-Worker: 31. Analysis Results
+    Worker->>+DB: 32. Save Analysis
+    DB-->>-Worker: 33. Analysis Saved
+    Worker->>+DB: 34. Update Status (COMPLETED)
+    DB-->>-Worker: 35. Status Updated
+
+%% Notifications
+    Worker->>+Email: 36. Send Completion Email
+    Email-->>-Worker: 37. Email Sent
+    Worker->>+API: 38. Push Notification
+    API-->>-Mobile: 39. Show Notification
+
+%% Status Check
+    Mobile->>+API: 40. Get Video Status
+    API->>+DB: 41. Query Video
+    DB-->>-API: 42. Video Status & Results
+    API-->>-Mobile: 43. Return Status & Analysis
