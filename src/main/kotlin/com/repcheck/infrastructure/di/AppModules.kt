@@ -9,6 +9,8 @@ import com.repcheck.features.user.application.service.JwtProvider
 import com.repcheck.features.user.domain.repository.UserRepository
 import com.repcheck.features.user.infrastructure.repository.ExposedUserRepository
 import com.repcheck.features.video.domain.repository.VideoRepository
+import com.repcheck.features.video.domain.service.VideoProcessor
+import com.repcheck.features.video.domain.service.VideoProcessorImpl
 import com.repcheck.features.video.domain.service.VideoService
 import com.repcheck.features.video.infrastructure.repository.ExposedVideoRepository
 import com.repcheck.features.workout.domain.repository.WorkoutRepository
@@ -54,6 +56,13 @@ fun appModule(appConfig: ApplicationConfig) = module {
         )
     }
 
-    // VideoService singleton
-    single { VideoService(videoRepository = get(), s3UploadService = get()) }
+    // Video Services
+    single<VideoProcessor> { VideoProcessorImpl() }
+    single { 
+        VideoService(
+            videoRepository = get(), 
+            s3UploadService = get(),
+            videoProcessor = get()
+        ) 
+    }
 }

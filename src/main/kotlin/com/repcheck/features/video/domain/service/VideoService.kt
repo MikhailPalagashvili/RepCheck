@@ -9,7 +9,8 @@ import java.util.*
 
 class VideoService(
     private val videoRepository: VideoRepository,
-    private val s3UploadService: S3UploadService
+    private val s3UploadService: S3UploadService,
+    private val videoProcessor: VideoProcessor
 ) {
     /**
      * Creates a video record and returns a presigned URL for direct upload
@@ -41,14 +42,41 @@ class VideoService(
      * @param durationSeconds Duration of the video in seconds
      * @return The updated video or null if not found
      */
-    fun completeVideoUpload(
+    suspend fun completeVideoUpload(
         videoId: Long,
         fileSizeBytes: Long,
         durationSeconds: Int
     ): WorkoutVideo? {
+        // Update video metadata
         videoRepository.updateFileSize(videoId, fileSizeBytes)
         videoRepository.updateDuration(videoId, durationSeconds)
         videoRepository.updateStatus(videoId, VideoStatus.UPLOADED)
-        return videoRepository.findById(videoId)
+        
+        // Get the updated video
+        val video = videoRepository.findById(videoId) ?: return null
+        
+        // Start processing the video asynchronously
+        processVideoInBackground(video)
+        
+        return video
+    }
+    
+    private suspend fun processVideoInBackground(video: WorkoutVideo) {
+        try {
+            // Update status to PROCESSING
+            videoRepository.updateStatus(video.id, VideoStatus.PROCESSING)
+            
+            // Process the video
+            val processedVideo = videoProcessor.processVideo(video)
+            
+            // Update status to PROCESSED
+            videoRepository.updateStatus(processedVideo.id, VideoStatus.PROCESSED)
+            
+        } catch (e: Exception) {
+            // Update status to FAILED if there's an error
+            videoRepository.updateStatus(video.id, VideoStatus.FAILED)
+            // TODO: Add error logging
+            e.printStackTrace()
+        }
     }
 }
