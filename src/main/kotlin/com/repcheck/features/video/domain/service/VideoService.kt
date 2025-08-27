@@ -66,8 +66,8 @@ class VideoService(
             // Update status to PROCESSING
             videoRepository.updateStatus(video.id, VideoStatus.PROCESSING)
             
-            // Process the video
-            val processedVideo = videoProcessor.processVideo(video)
+            // Process the video by invoking the function
+            val processedVideo = videoProcessor(video)
             
             // Update status to PROCESSED
             videoRepository.updateStatus(processedVideo.id, VideoStatus.PROCESSED)
