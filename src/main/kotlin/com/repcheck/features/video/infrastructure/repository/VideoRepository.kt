@@ -44,6 +44,15 @@ class ExposedVideoRepository : VideoRepository {
             .let(::rowToDomain)
     }
 
+    override fun update(video: WorkoutVideo): Boolean = transaction {
+        WorkoutVideos.update({ WorkoutVideos.id eq EntityID(video.id, WorkoutVideos) }) { st ->
+            st[status] = video.status
+            st[durationSeconds] = video.durationSeconds
+            st[fileSizeBytes] = video.fileSizeBytes
+            st[updatedAt] = Instant.now()
+        } > 0
+    }
+
     override fun updateStatus(id: Long, status: VideoStatus): Boolean = transaction {
         WorkoutVideos.update({ WorkoutVideos.id eq EntityID(id, WorkoutVideos) }) { video ->
             video[WorkoutVideos.status] = status

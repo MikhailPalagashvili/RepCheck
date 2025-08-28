@@ -12,6 +12,8 @@ interface VideoRepository {
         status: VideoStatus = VideoStatus.UPLOADING,
     ): WorkoutVideo
 
+    fun update(video: WorkoutVideo): Boolean
+
     fun updateStatus(id: Long, status: VideoStatus): Boolean
 
     fun updateDuration(id: Long, durationSeconds: Int?): Boolean

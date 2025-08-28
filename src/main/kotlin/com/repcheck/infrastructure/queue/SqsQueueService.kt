@@ -29,7 +29,7 @@ class SqsQueueService(
         }
     }
 
-    private suspend fun deleteMessage(receiptHandle: String) = withContext(Dispatchers.IO) {
+    suspend fun deleteMessage(receiptHandle: String) = withContext(Dispatchers.IO) {
         try {
             val request = DeleteMessageRequest.builder()
                 .queueUrl(config.queueUrl)
