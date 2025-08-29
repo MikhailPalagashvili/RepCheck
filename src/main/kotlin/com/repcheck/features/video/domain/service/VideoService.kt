@@ -64,15 +64,8 @@ class VideoService(
         try {
             val video = videoRepository.findById(videoId) ?: return
             videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
-
-            // Process the video
-            val processedVideo = videoProcessor(video)
-
-            // Update status to PROCESSED
+            videoProcessor(video)
             videoRepository.updateStatus(videoId, VideoStatus.PROCESSED)
-            // Save any processed video data
-            // ...
-
         } catch (e: Exception) {
             videoRepository.updateStatus(videoId, VideoStatus.FAILED)
             // Consider adding error logging here
