@@ -7,29 +7,29 @@ import com.repcheck.infrastructure.s3.S3ClientProvider
 import com.repcheck.infrastructure.s3.S3UploadService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
 import software.amazon.awssdk.services.s3.S3Client
 import java.net.URL
-import java.util.*
 
 class VideoService(
     private val videoRepository: VideoRepository,
     private val s3UploadService: S3UploadService,
     private val videoProcessor: VideoProcessor,
     private val s3Client: S3Client = S3ClientProvider.s3Client
-) {
-    /**
-     * Creates a video record and returns a presigned URL for direct upload
-     */
+) : KoinComponent {
+    private val logger = org.slf4j.LoggerFactory.getLogger(VideoService::class.java)
+
     fun createVideoAndGetUploadUrl(
         userId: Long,
         workoutSetId: Long,
         fileExtension: String = "mp4"
     ): Pair<WorkoutVideo, URL> {
-        val videoId = UUID.randomUUID().toString()
+        val videoId = System.currentTimeMillis() // Using timestamp as ID
+        val videoKey = "videos/$videoId.$fileExtension"
         val video = videoRepository.create(
             userId = userId,
             workoutSetId = workoutSetId,
-            s3Key = "videos/$videoId.$fileExtension",
+            s3Key = videoKey,
             s3Bucket = s3UploadService.bucketName,
             status = VideoStatus.UPLOADING
         )
@@ -37,38 +37,28 @@ class VideoService(
         return video to uploadUrl
     }
 
+    suspend fun handleS3UploadEvent(videoId: Long, key: String, bucket: String) {
+        try {
+            videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
+            val video = videoRepository.findById(videoId) ?: throw IllegalStateException("Video not found: $videoId")
+            withContext(Dispatchers.IO) {
+                try {
+                    videoProcessor.process(video)
+                    videoRepository.updateStatus(videoId, VideoStatus.PROCESSED)
+                } catch (e: Exception) {
+                    logger.error("Failed to process video: $videoId", e)
+                    videoRepository.updateStatus(videoId, VideoStatus.FAILED)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Error handling S3 upload event", e)
+            videoRepository.updateStatus(videoId, VideoStatus.FAILED)
+        }
+    }
+
     fun getVideo(videoId: Long): WorkoutVideo? = videoRepository.findById(videoId)
 
     fun findByS3Key(s3Key: String): WorkoutVideo? {
         return videoRepository.findByS3Key(s3Key)
-    }
-
-    suspend fun handleS3UploadEvent(videoId: Long, s3Key: String, bucket: String) {
-        val video = videoRepository.findById(videoId) ?: return
-        if (video.status != VideoStatus.UPLOADING) return
-
-        withContext(Dispatchers.IO) {
-            try {
-                val response = s3Client.headObject {
-                    it.bucket(bucket).key(s3Key)
-                }
-                videoRepository.updateFileSize(videoId, response.contentLength())
-                processVideo(videoId)
-            } catch (e: Exception) {
-                videoRepository.updateStatus(videoId, VideoStatus.FAILED)
-            }
-        }
-    }
-
-    private suspend fun processVideo(videoId: Long) {
-        try {
-            val video = videoRepository.findById(videoId) ?: return
-            videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
-            videoProcessor(video)
-            videoRepository.updateStatus(videoId, VideoStatus.PROCESSED)
-        } catch (e: Exception) {
-            videoRepository.updateStatus(videoId, VideoStatus.FAILED)
-            // Consider adding error logging here
-        }
     }
 }

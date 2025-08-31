@@ -12,11 +12,10 @@ class S3UploadService(
     private val s3Presigner: S3Presigner = S3ClientProvider.s3Presigner
 ) {
     fun generateVideoUploadUrl(
-        videoId: String,
+        videoId: Long,
         fileExtension: String = "mp4",
         contentType: String = "video/mp4"
     ): URL {
-        require(videoId.isNotBlank()) { "videoId cannot be blank" }
         val cleanExtension = fileExtension.removePrefix(".")
         val objectKey = "videos/$videoId.$cleanExtension"
         return generatePresignedUrl(objectKey, contentType)

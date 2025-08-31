@@ -9,13 +9,11 @@ import software.amazon.awssdk.services.sqs.model.Message
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 
-/**
- * Worker that processes video analysis jobs from the queue
- */
 class VideoProcessingWorker(
     private val queueService: SqsQueueService,
     private val videoRepository: VideoRepository,
-    private val videoProcessor: VideoProcessor = defaultVideoProcessor,
+    private val videoProcessor: VideoProcessor,
+    private val progressTracker: ProcessingProgressTracker,
     private val tempDir: Path = Path.of("/tmp/repcheck/videos"),
     private val pollingIntervalMs: Long = 5000L
 ) {
@@ -23,9 +21,6 @@ class VideoProcessingWorker(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isRunning = false
 
-    /**
-     * Start the worker to process messages from the queue
-     */
     fun start() {
         if (isRunning) {
             logger.warn { "Worker is already running" }
@@ -48,7 +43,6 @@ class VideoProcessingWorker(
         }
     }
 
-
     private suspend fun processNextMessage() {
         val messages = queueService.receiveMessages()
         if (messages.isEmpty()) return
@@ -69,31 +63,34 @@ class VideoProcessingWorker(
             ?: throw IllegalArgumentException("Invalid message format: ${message.body()}")
 
         logger.info { "Processing video: $videoId" }
+        val video = videoRepository.findById(videoId)
+            ?: throw IllegalArgumentException("Video not found: $videoId")
 
-        // Get video details
-        val video = videoRepository.findById(videoId) ?: throw IllegalArgumentException("Video not found: $videoId")
-
-        // Update status to PROCESSING
         videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
+        progressTracker.updateProgress(videoId, 10)
 
         try {
             // Process the video
-            val processedVideo = videoProcessor(video)
+            val result = videoProcessor.process(video)
 
-            // Update the video with results
-            videoRepository.update(processedVideo)
+            // Update video with results
+            videoRepository.update(
+                video.copy(
+                    status = result.status,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
 
+            progressTracker.updateProgress(videoId, 100)
             logger.info { "Successfully processed video: $videoId" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to process video: $videoId" }
             videoRepository.updateStatus(videoId, VideoStatus.FAILED)
+            progressTracker.removeProgress(videoId)
             throw e
         }
     }
 
-    /**
-     * Stop the worker
-     */
     fun stop() {
         logger.info { "Stopping VideoProcessingWorker" }
         isRunning = false
