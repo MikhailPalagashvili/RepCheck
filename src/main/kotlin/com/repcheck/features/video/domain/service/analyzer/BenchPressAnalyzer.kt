@@ -8,40 +8,62 @@ import com.repcheck.features.video.domain.service.VideoFeatures
  */
 object BenchPressAnalyzer : BaseExerciseAnalyzer() {
     override val exerciseType = ExerciseType.BENCH_PRESS
-    // Thresholds for form feedback
-    private val barPathDeviationThreshold = 0.15f // Maximum allowed horizontal bar path deviation (normalized)
-    private val elbowAngleAtBottomThreshold = 75.0 // Minimum elbow angle at bottom position (degrees)
-    private val barSpeedThreshold = 0.5f // Minimum bar speed at sticking point (normalized)
-    private val archThreshold = 10.0 // Maximum acceptable arch in lower back (degrees)
+    // Starting Strength bench press standards
+    private val barPathDeviationThreshold = 0.1f // Bar should move in a slight J-curve (normalized)
+    private val elbowAngleAtBottom = 75.0 // Elbow angle at bottom (degrees) - slightly less than 90
+    private val gripWidthTolerance = 0.1f // Acceptable grip width variation (normalized)
+    private val archThreshold = 15.0 // Maximum acceptable arch in lower back (degrees)
+    private val barSpeedThreshold = 0.6f // Minimum bar speed at sticking point (normalized)
+    private val barTouchPoint = 0.5f // Where bar touches chest (0 = neck, 1 = sternum)
 
     override fun calculateMetrics(features: VideoFeatures): Map<String, Float> {
         val metrics = mutableMapOf<String, Float>()
 
-        // TODO: Implement actual calculation from pose data
-        // For now, return placeholder metrics
-        metrics["bar_path_deviation"] = 0.12f
-        metrics["elbow_angle_bottom"] = 80f
-        metrics["bar_speed"] = 0.6f
-        metrics["back_arch"] = 8f
-        metrics["wrist_position"] = 0.9f // 1.0 = neutral, <1.0 = bent back
-
+        // Calculate metrics from pose data
+        // These are placeholder implementations - actual implementation would use pose estimation
+        
+        // Basic metrics
+        metrics["bar_path"] = 0.08f  // Deviation from ideal J-curve path
+        metrics["elbow_angle"] = 78f  // Elbow angle at bottom
+        metrics["bar_speed"] = 0.7f   // Bar speed (normalized)
+        metrics["back_arch"] = 12f    // Back arch angle (degrees)
+        metrics["wrist_position"] = 0.95f // 1.0 = neutral, <1.0 = bent back
+        metrics["bar_touch"] = 0.5f   // Where bar touches chest (0 = neck, 1 = sternum)
+        metrics["leg_drive"] = 0.6f   // Amount of leg drive (0-1)
+        
+        // Calculate Starting Strength specific metrics
+        val properGrip = metrics["wrist_position"]!! >= 0.9f
+        val goodTouchPoint = metrics["bar_touch"]!! in 0.4f..0.6f
+        val properElbowAngle = metrics["elbow_angle"]!! in 70f..85f
+        
+        metrics["ss_approved"] = if (properGrip && goodTouchPoint && properElbowAngle) 1f else 0f
+        
         return metrics
     }
 
     override fun generateFeedback(metrics: Map<String, Float>): List<String> {
         val feedback = mutableListOf<String>()
 
-        // Check bar path
-        metrics["bar_path_deviation"]?.let { deviation ->
+        if (metrics.isEmpty()) {
+            return emptyList()
+        }
+        
+        // Starting Strength specific feedback
+        metrics["ss_approved"]?.let { 
+            if (it < 1f) {
+                feedback.add("Form needs adjustment to match Starting Strength standards")
+            }
+        }
+        metrics["bar_path"]?.let { deviation ->
             if (deviation > barPathDeviationThreshold) {
-                feedback.add("Keep the bar path straight - it should move directly up and down over your shoulders")
+                feedback.add("Keep the bar path in a slight J-curve - it should move from your lower chest to over your shoulders")
             }
         }
 
         // Check elbow angle at bottom
-        metrics["elbow_angle_bottom"]?.let { angle ->
-            if (angle < elbowAngleAtBottomThreshold) {
-                feedback.add("Don't let your elbows drop too low - keep them at about 75 degrees at the bottom")
+        metrics["elbow_angle"]?.let { angle ->
+            if (angle < elbowAngleAtBottom) {
+                feedback.add("Keep your elbows at about 75 degrees at the bottom - don't let them flare out")
             }
         }
 
@@ -67,8 +89,8 @@ object BenchPressAnalyzer : BaseExerciseAnalyzer() {
         }
 
         // Add positive reinforcement if form is good
-        if (feedback.isEmpty() && metrics.isNotEmpty()) {
-            feedback.add("Good form! Keep your shoulder blades retracted and drive through your legs.")
+        if (feedback.isEmpty() && metrics.isNotEmpty() && metrics["ss_approved"] == 1f) {
+            feedback.add("Excellent form! Maintain tightness in your upper back and keep your shoulder blades retracted.")
         }
 
         return feedback
@@ -89,7 +111,7 @@ object BenchPressAnalyzer : BaseExerciseAnalyzer() {
 
         // Elbow angle (25% weight)
         metrics["elbow_angle_bottom"]?.let { angle ->
-            val angleScore = (angle / elbowAngleAtBottomThreshold.toFloat()).coerceIn(0f, 1f)
+            val angleScore = (angle / elbowAngleAtBottom.toFloat()).coerceIn(0f, 1f)
             score += angleScore * 0.25f
             totalWeights += 0.25f
         }

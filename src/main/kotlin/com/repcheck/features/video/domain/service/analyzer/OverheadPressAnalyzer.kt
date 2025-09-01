@@ -9,33 +9,55 @@ import com.repcheck.features.video.domain.service.VideoFeatures
 object OverheadPressAnalyzer : BaseExerciseAnalyzer() {
     override val exerciseType = ExerciseType.OVERHEAD_PRESS
 
-    // Thresholds for form feedback
-    private val barPathDeviationThreshold = 0.15f // Maximum allowed horizontal bar path deviation (normalized)
-    private val hipThrustThreshold = 0.2f // Maximum acceptable hip thrust (normalized)
-    private val lockoutElbowAngleThreshold = 170.0 // Minimum elbow angle at lockout (degrees)
-    private val gripWidthTolerance = 0.1f // Acceptable grip width variation (normalized)
+    // Starting Strength Press standards
+    private val barPathDeviationThreshold = 0.1f // Bar should move in a slight arc (normalized)
+    private val hipThrustThreshold = 0.25f // Maximum acceptable hip thrust (normalized)
+    private val lockoutElbowAngleThreshold = 175.0 // Full elbow extension at lockout (degrees)
+    private val gripWidthTolerance = 0.08f // Grip should be just outside shoulders
+    private val barSpeedThreshold = 0.6f // Minimum bar speed (normalized)
+    private val headPositionThreshold = 0.15f // Head should move forward as bar passes
 
     override fun calculateMetrics(features: VideoFeatures): Map<String, Float> {
         val metrics = mutableMapOf<String, Float>()
 
-        // TODO: Implement actual calculation from pose data
-        // For now, return placeholder metrics
-        metrics["bar_path_deviation"] = 0.12f
-        metrics["hip_thrust"] = 0.15f
-        metrics["lockout_elbow_angle"] = 172f
-        metrics["grip_width_variation"] = 0.08f
-        metrics["bar_speed"] = 0.7f
-
+        // Calculate metrics from pose data
+        // These are placeholder implementations - actual implementation would use pose estimation
+        
+        // Basic metrics
+        metrics["bar_path"] = 0.08f           // Deviation from ideal bar path
+        metrics["hip_thrust"] = 0.18f         // Amount of hip thrust (0-1)
+        metrics["lockout_elbow_angle"] = 174f // Elbow angle at lockout (degrees)
+        metrics["grip_width"] = 0.07f         // Grip width variation from ideal
+        metrics["bar_speed"] = 0.75f          // Bar speed (normalized)
+        metrics["head_position"] = 0.12f       // Head movement (0-1)
+        metrics["forearm_angle"] = 88f        // Forearm angle from vertical (degrees)
+        
+        // Calculate Starting Strength specific metrics
+        val properGrip = metrics["grip_width"]!! <= gripWidthTolerance
+        val goodLockout = metrics["lockout_elbow_angle"]!! >= lockoutElbowAngleThreshold
+        val properForearms = metrics["forearm_angle"]!! in 85f..90f
+        
+        metrics["ss_approved"] = if (properGrip && goodLockout && properForearms) 1f else 0f
+        
         return metrics
     }
 
     override fun generateFeedback(metrics: Map<String, Float>): List<String> {
         val feedback = mutableListOf<String>()
 
-        // Check bar path
-        metrics["bar_path_deviation"]?.let { deviation ->
+        if (metrics.isEmpty()) {
+            return emptyList()
+        }
+        
+        // Starting Strength specific feedback
+        metrics["ss_approved"]?.let { 
+            if (it < 1f) {
+                feedback.add("Form needs adjustment to match Starting Strength standards")
+            }
+        }
+        metrics["bar_path"]?.let { deviation ->
             if (deviation > barPathDeviationThreshold) {
-                feedback.add("Keep the bar close to your face - it should move in a straight vertical line")
+                feedback.add("Keep the bar close to your face - it should move in a slight arc from your shoulders to overhead")
             }
         }
 
@@ -54,15 +76,22 @@ object OverheadPressAnalyzer : BaseExerciseAnalyzer() {
         }
 
         // Check grip width
-        metrics["grip_width_variation"]?.let { variation ->
-            if (variation > gripWidthTolerance) {
-                feedback.add("Maintain consistent grip width - hands should be just outside shoulders")
+        metrics["grip_width"]?.let { gripWidth ->
+            if (gripWidth > gripWidthTolerance) {
+                feedback.add("Grip should be just outside shoulders - your grip might be too wide")
+            }
+        }
+
+        // Check head position
+        metrics["head_position"]?.let { headPos ->
+            if (headPos < headPositionThreshold) {
+                feedback.add("Move your head forward as the bar passes - look forward, not up")
             }
         }
 
         // Add positive reinforcement if form is good
-        if (feedback.isEmpty() && metrics.isNotEmpty()) {
-            feedback.add("Good form! Keep your core tight and press the bar in a straight line.")
+        if (feedback.isEmpty() && metrics.isNotEmpty() && metrics["ss_approved"] == 1f) {
+            feedback.add("Excellent press form! Keep your forearms vertical and press the bar in a smooth motion.")
         }
 
         return feedback

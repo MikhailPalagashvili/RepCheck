@@ -15,7 +15,9 @@ class VideoProcessingWorker(
     private val videoProcessor: VideoProcessor,
     private val progressTracker: ProcessingProgressTracker,
     private val tempDir: Path = Path.of("/tmp/repcheck/videos"),
-    private val pollingIntervalMs: Long = 5000L
+    private val pollingIntervalMs: Long = 5000L,
+    private val maxRetryAttempts: Int = 3,
+    private val initialBackoffMs: Long = 1000L
 ) {
     private val logger = KotlinLogging.logger {}
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -36,7 +38,7 @@ class VideoProcessingWorker(
                 try {
                     processNextMessage()
                 } catch (e: Exception) {
-                    logger.error(e) { "Error in worker loop" }
+                    logger.error(e) { "Unexpected error in worker loop" }
                 }
                 delay(pollingIntervalMs)
             }
@@ -44,17 +46,59 @@ class VideoProcessingWorker(
     }
 
     private suspend fun processNextMessage() {
-        val messages = queueService.receiveMessages()
-        if (messages.isEmpty()) return
+        try {
+            val messages = queueService.receiveMessages()
+            if (messages.isEmpty()) return
 
-        messages.forEach { message ->
-            try {
-                processMessage(message)
-                queueService.deleteMessage(message.receiptHandle())
-            } catch (e: Exception) {
-                logger.error(e) { "Failed to process message: ${message.body()}" }
-                queueService.moveToDlq(message)
+            messages.forEach { message ->
+                try {
+                    processWithRetry(message)
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to process message after retries: ${message.body()}" }
+                    handleFailedMessage(message, e)
+                }
             }
+        } catch (e: Exception) {
+            logger.error(e) { "Error receiving messages from queue" }
+        }
+    }
+
+    private suspend fun processWithRetry(message: Message, attempt: Int = 1) {
+        try {
+            processMessage(message)
+            queueService.deleteMessage(message.receiptHandle())
+        } catch (e: Exception) {
+            if (attempt >= maxRetryAttempts) {
+                throw e // Rethrow to be handled by the caller
+            }
+            
+            val backoffMs = initialBackoffMs * (1L shl (attempt - 1)) // Exponential backoff
+            logger.warn(e) { "Attempt $attempt failed, retrying in ${backoffMs}ms" }
+            
+            delay(backoffMs)
+            processWithRetry(message, attempt + 1)
+        }
+    }
+
+    private suspend fun handleFailedMessage(message: Message, error: Throwable) {
+        try {
+            // Try to extract video ID for better error tracking
+            val videoId = message.body().toLongOrNull()
+            if (videoId != null) {
+                videoRepository.updateStatus(videoId, VideoStatus.FAILED)
+                progressTracker.removeProgress(videoId)
+            }
+            
+            // Move to DLQ or handle the failure appropriately
+            queueService.moveToDlq(message)
+            
+            logger.error(error) {
+                "Moved message to DLQ. Body: ${message.body()}, " +
+                "MessageId: ${message.messageId()}, " +
+                "Error: ${error.message}"
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to handle failed message: ${message.messageId()}" }
         }
     }
 
@@ -66,10 +110,10 @@ class VideoProcessingWorker(
         val video = videoRepository.findById(videoId)
             ?: throw IllegalArgumentException("Video not found: $videoId")
 
-        videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
-        progressTracker.updateProgress(videoId, 10)
-
         try {
+            videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
+            progressTracker.updateProgress(videoId, 10)
+
             // Process the video
             val result = videoProcessor.process(video)
 

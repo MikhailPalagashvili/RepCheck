@@ -9,29 +9,53 @@ import com.repcheck.features.video.domain.service.VideoFeatures
 object DeadliftAnalyzer : BaseExerciseAnalyzer() {
     override val exerciseType = ExerciseType.DEADLIFT
 
-    // Thresholds for form feedback
-    private val backAngleThreshold = 15.0 // Maximum acceptable back angle from vertical at start (degrees)
-    private val barPathDeviationThreshold = 0.1f // Maximum allowed horizontal bar path deviation (normalized)
-    private val lockoutHipExtensionThreshold = 170.0 // Minimum hip angle at lockout (degrees)
+    // Starting Strength deadlift standards
+    private val backAngleThreshold = 20.0 // Maximum back angle from vertical at start (degrees)
+    private val barPathDeviationThreshold = 0.08f // Bar should move in a straight vertical line
+    private val lockoutHipExtensionThreshold = 175.0 // Full hip extension at lockout (degrees)
+    private val shoulderOverBarThreshold = 0.05f // Shoulder should be slightly in front of the bar
+    private val barSpeedThreshold = 1.0f // Minimum bar speed (m/s)
+    private val hipShoulderRiseRatio = 0.9f // Hips and shoulders should rise together
 
     override fun calculateMetrics(features: VideoFeatures): Map<String, Float> {
         val metrics = mutableMapOf<String, Float>()
 
-        // TODO: Implement actual calculation from pose data
-        // For now, return placeholder metrics
-        metrics["back_angle_start"] = 20f
-        metrics["bar_path_deviation"] = 0.08f
-        metrics["lockout_hip_angle"] = 172f
-        metrics["bar_speed"] = 1.2f
-        metrics["hip_shoulder_rise_ratio"] = 0.95f
-
+        // Calculate metrics from pose data
+        // These are placeholder implementations - actual implementation would use pose estimation
+        
+        // Basic metrics
+        metrics["back_angle_start"] = 18f  // Back angle from vertical at start (degrees)
+        metrics["bar_path"] = 0.06f       // Deviation from vertical bar path
+        metrics["lockout_hip_angle"] = 174f // Hip angle at lockout (degrees)
+        metrics["bar_speed"] = 1.1f       // Bar speed (m/s)
+        metrics["shoulder_over_bar"] = 0.03f // Shoulder position relative to bar (positive = in front)
+        metrics["hip_shoulder_rise"] = 0.88f // Hip to shoulder rise ratio
+        metrics["bar_over_midfoot"] = 0.95f // Bar position over midfoot (1.0 = perfect)
+        
+        // Calculate Starting Strength specific metrics
+        val properSetup = metrics["shoulder_over_bar"]!! > 0f && 
+                         metrics["bar_over_midfoot"]!! >= 0.9f
+        val goodLockout = metrics["lockout_hip_angle"]!! >= 170f
+        val properBarPath = metrics["bar_path"]!! <= barPathDeviationThreshold
+        
+        metrics["ss_approved"] = if (properSetup && goodLockout && properBarPath) 1f else 0f
+        
         return metrics
     }
 
     override fun generateFeedback(metrics: Map<String, Float>): List<String> {
         val feedback = mutableListOf<String>()
 
-        // Check back angle at start
+        if (metrics.isEmpty()) {
+            return emptyList()
+        }
+        
+        // Starting Strength specific feedback
+        metrics["ss_approved"]?.let { 
+            if (it < 1f) {
+                feedback.add("Form needs adjustment to match Starting Strength standards")
+            }
+        }
         metrics["back_angle_start"]?.let { angle ->
             if (angle > backAngleThreshold) {
                 feedback.add("Set your back in extension before lifting - your back is too horizontal")
@@ -39,9 +63,9 @@ object DeadliftAnalyzer : BaseExerciseAnalyzer() {
         }
 
         // Check bar path
-        metrics["bar_path_deviation"]?.let { deviation ->
+        metrics["bar_path"]?.let { deviation ->
             if (deviation > barPathDeviationThreshold) {
-                feedback.add("Keep the bar close to your body - it's swinging out too far")
+                feedback.add("Keep the bar in contact with your legs - it's drifting away from your body")
             }
         }
 
@@ -52,16 +76,23 @@ object DeadliftAnalyzer : BaseExerciseAnalyzer() {
             }
         }
 
-        // Check hip-shoulder timing
-        metrics["hip_shoulder_rise_ratio"]?.let { ratio ->
-            if (ratio < 0.9f) {
-                feedback.add("Hips and shoulders should rise together - don't let your hips shoot up first")
+        // Check shoulder position relative to bar
+        metrics["shoulder_over_bar"]?.let { shoulderPos ->
+            if (shoulderPos < 0) {
+                feedback.add("Your shoulders should be slightly in front of the bar at the start")
+            }
+        }
+        
+        // Check bar position over midfoot
+        metrics["bar_over_midfoot"]?.let { barPos ->
+            if (barPos < 0.9f) {
+                feedback.add("The bar should be over the middle of your foot at the start")
             }
         }
 
         // Add positive reinforcement if form is good
-        if (feedback.isEmpty() && metrics.isNotEmpty()) {
-            feedback.add("Good form! Keep the bar close and maintain a neutral spine.")
+        if (feedback.isEmpty() && metrics.isNotEmpty() && metrics["ss_approved"] == 1f) {
+            feedback.add("Excellent deadlift form! You're maintaining proper back position and bar path.")
         }
 
         return feedback
