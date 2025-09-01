@@ -58,7 +58,7 @@ class VideoProcessingWorker(
         }
     }
 
-    private suspend fun processMessage(message: Message) {
+    internal suspend fun processMessage(message: Message) {
         val videoId = message.body().toLongOrNull()
             ?: throw IllegalArgumentException("Invalid message format: ${message.body()}")
 
