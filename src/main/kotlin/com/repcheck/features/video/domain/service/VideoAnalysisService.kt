@@ -1,5 +1,7 @@
 package com.repcheck.features.video.domain.service
 
+import ExerciseAnalyzerFactory
+import com.repcheck.features.video.domain.model.ExerciseType
 import com.repcheck.features.video.domain.model.VideoAnalysis
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import kotlinx.coroutines.delay
@@ -66,8 +68,17 @@ data class AudioFeatures(
     val features: JsonObject
 )
 
+/**
+ * Represents the analysis of a workout session.
+ *
+ * @property exerciseType The type of exercise being performed (Squat, Bench Press, Deadlift, or Overhead Press)
+ * @property repetitions The number of repetitions completed with good form
+ * @property formScore A score from 0.0 to 1.0 representing overall form quality
+ * @property feedback List of form feedback points based on Starting Strength standards
+ * @property metrics Additional metrics about the workout (e.g., depth, bar path)
+ */
 data class WorkoutAnalysis(
-    val exerciseType: String,
+    val exerciseType: ExerciseType,
     val repetitions: Int,
     val formScore: Float,
     val feedback: List<String>,
@@ -85,19 +96,29 @@ class DefaultVideoAnalysisService : VideoAnalysisService {
     }
 
     override suspend fun analyzeWorkout(features: VideoFeatures): WorkoutAnalysis {
+        // TODO: Implement exercise type detection from video features
+        // For now, default to Squat as it's the most fundamental lift
+        val detectedExercise = ExerciseType.SQUAT
+        val analyzer = ExerciseAnalyzerFactory.createAnalyzer(detectedExercise)
+
+        // Analyze the workout using the appropriate analyzer
+        val (feedback, metrics) = analyzer.analyzeForm(features)
+        val repetitions = analyzer.countRepetitions(features)
+        val formScore = analyzer.calculateFormScore(metrics)
+
         return WorkoutAnalysis(
-            exerciseType = "squat", // TODO: Implement exercise type detection
-            repetitions = 0, // TODO: Implement rep counting
-            formScore = 0f, // TODO: Implement form analysis
-            feedback = emptyList(), // TODO: Generate feedback
-            metrics = emptyMap() // TODO: Add relevant metrics
+            exerciseType = detectedExercise,
+            repetitions = repetitions,
+            formScore = formScore,
+            feedback = feedback,
+            metrics = metrics
         )
     }
 
     override suspend fun generateReport(analysis: WorkoutAnalysis): VideoAnalysis {
         val analysisData = JsonObject(
             mapOf(
-                "exerciseType" to JsonPrimitive(analysis.exerciseType),
+                "exerciseType" to JsonPrimitive(analysis.exerciseType.name),
                 "repetitions" to JsonPrimitive(analysis.repetitions),
                 "formScore" to JsonPrimitive(analysis.formScore),
                 "feedback" to JsonArray(analysis.feedback.map { JsonPrimitive(it) }),

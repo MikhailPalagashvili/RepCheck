@@ -1,5 +1,6 @@
 package com.repcheck.features.video.domain.service
 
+import com.repcheck.features.video.domain.model.ExerciseType
 import com.repcheck.features.video.domain.model.VideoAnalysis
 import com.repcheck.features.video.domain.model.WorkoutVideo
 import io.kotest.core.spec.style.BehaviorSpec
@@ -43,7 +44,7 @@ class DefaultVideoAnalysisServiceTest : BehaviorSpec({
             then("should return WorkoutAnalysis with default values") {
                 runTest {
                     val analysis = service.analyzeWorkout(features)
-                    analysis.exerciseType shouldBe "squat"
+                    analysis.exerciseType shouldBe ExerciseType.SQUAT
                     analysis.repetitions shouldBe 0
                     analysis.formScore shouldBe 0f
                     analysis.feedback shouldBe emptyList()
@@ -56,7 +57,7 @@ class DefaultVideoAnalysisServiceTest : BehaviorSpec({
     given("generateReport") {
         `when`("called with workout analysis") {
             val analysis = WorkoutAnalysis(
-                exerciseType = "pushup",
+                exerciseType = ExerciseType.SQUAT,
                 repetitions = 10,
                 formScore = 0.85f,
                 feedback = listOf("Good form!", "Keep your back straight"),
@@ -71,7 +72,7 @@ class DefaultVideoAnalysisServiceTest : BehaviorSpec({
 
                     // Verify JSON structure
                     val data = report.analysisData
-                    data["exerciseType"] shouldBe JsonPrimitive("pushup")
+                    data["exerciseType"] shouldBe JsonPrimitive("SQUAT")
                     data["repetitions"] shouldBe JsonPrimitive(10)
                     data["formScore"] shouldBe JsonPrimitive(0.85f)
 

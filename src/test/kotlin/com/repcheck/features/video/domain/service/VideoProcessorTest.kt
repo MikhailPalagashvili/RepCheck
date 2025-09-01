@@ -1,9 +1,6 @@
 package com.repcheck.features.video.domain.service
 
-import com.repcheck.features.video.domain.model.VideoAnalysis
-import com.repcheck.features.video.domain.model.VideoProcessingProgress
-import com.repcheck.features.video.domain.model.VideoStatus
-import com.repcheck.features.video.domain.model.WorkoutVideo
+import com.repcheck.features.video.domain.model.*
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
@@ -59,7 +56,7 @@ class VideoProcessorTest {
         )
 
         val testAnalysis = WorkoutAnalysis(
-            exerciseType = "SQUAT",
+            exerciseType = ExerciseType.SQUAT,
             repetitions = 10,
             formScore = 0.95f,
             feedback = listOf("Good form!"),
@@ -129,7 +126,7 @@ class VideoProcessorTest {
             motionVectors = emptyList()
         )
         val testAnalysis = WorkoutAnalysis(
-            exerciseType = "SQUAT",
+            exerciseType = ExerciseType.SQUAT,
             repetitions = 10,
             formScore = 0.95f,
             feedback = listOf("Good form!"),
@@ -211,7 +208,7 @@ class VideoProcessorTest {
             motionVectors = emptyList()
         )
         val testAnalysis = WorkoutAnalysis(
-            exerciseType = "SQUAT",
+            exerciseType = ExerciseType.SQUAT,
             repetitions = 10,
             formScore = 0.95f,
             feedback = listOf("Good form!"),
