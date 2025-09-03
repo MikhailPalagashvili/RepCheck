@@ -2,6 +2,7 @@ package com.repcheck.features.video.domain.service
 
 import com.repcheck.features.video.domain.model.VideoStatus
 import com.repcheck.features.video.domain.repository.VideoRepository
+import com.repcheck.features.video.domain.service.metrics.VideoProcessingMetrics
 import com.repcheck.infrastructure.queue.SqsQueueService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
@@ -14,6 +15,7 @@ class VideoProcessingWorker(
     private val videoRepository: VideoRepository,
     private val videoProcessor: VideoProcessor,
     private val progressTracker: ProcessingProgressTracker,
+    private val metrics: VideoProcessingMetrics,
     private val tempDir: Path = Path.of("/tmp/repcheck/videos"),
     private val pollingIntervalMs: Long = 5000L,
     private val maxRetryAttempts: Int = 3,
@@ -68,7 +70,9 @@ class VideoProcessingWorker(
             processMessage(message)
             queueService.deleteMessage(message.receiptHandle())
         } catch (e: Exception) {
+            metrics.incrementRetry()
             if (attempt >= maxRetryAttempts) {
+                metrics.incrementError()
                 throw e // Rethrow to be handled by the caller
             }
             
@@ -91,6 +95,7 @@ class VideoProcessingWorker(
             
             // Move to DLQ or handle the failure appropriately
             queueService.moveToDlq(message)
+            metrics.incrementDlqMessages()
             
             logger.error(error) {
                 "Moved message to DLQ. Body: ${message.body()}, " +
@@ -110,6 +115,7 @@ class VideoProcessingWorker(
         val video = videoRepository.findById(videoId)
             ?: throw IllegalArgumentException("Video not found: $videoId")
 
+        val startTime = System.currentTimeMillis()
         try {
             videoRepository.updateStatus(videoId, VideoStatus.PROCESSING)
             progressTracker.updateProgress(videoId, 10)
@@ -125,8 +131,13 @@ class VideoProcessingWorker(
                 )
             )
 
+            // Record successful processing time
+            val processingTime = System.currentTimeMillis() - startTime
+            metrics.recordProcessingTime(processingTime)
+            metrics.incrementSuccess()
+            
             progressTracker.updateProgress(videoId, 100)
-            logger.info { "Successfully processed video: $videoId" }
+            logger.info { "Successfully processed video: $videoId in ${processingTime}ms" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to process video: $videoId" }
             videoRepository.updateStatus(videoId, VideoStatus.FAILED)

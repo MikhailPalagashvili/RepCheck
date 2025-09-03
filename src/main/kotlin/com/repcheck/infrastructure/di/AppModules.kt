@@ -89,7 +89,8 @@ fun appModule(appConfig: ApplicationConfig) = module {
             queueService = get(),
             videoRepository = get(),
             videoProcessor = get(),
-            progressTracker = get()
+            progressTracker = get(),
+            metrics = get()
         )
     }
 }
