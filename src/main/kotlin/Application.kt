@@ -39,7 +39,7 @@ fun Application.module() {
 
     // Install Koin first to get dependencies
     koin {
-        modules(appModule(environment.config))
+        modules(appModule(environment.config), )
     }
 
     // Get dependencies from Koin

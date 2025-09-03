@@ -59,7 +59,7 @@
             <url>https://repo1.maven.org/maven2/</url>
         </pluginRepository>
     </pluginRepositories>
-
+v
     <!-- ===== Build Configuration ===== -->
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
@@ -353,7 +353,21 @@
             <artifactId>exposed-json</artifactId>
             <version>${exposed.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>1.11.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-metrics-micrometer-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>1.11.6</version>
+        </dependency>
         <!-- Test Dependencies -->
         <dependency>
             <groupId>io.ktor</groupId>

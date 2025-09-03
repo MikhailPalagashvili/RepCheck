@@ -10,6 +10,7 @@ import com.repcheck.features.user.domain.repository.UserRepository
 import com.repcheck.features.user.infrastructure.repository.ExposedUserRepository
 import com.repcheck.features.video.domain.repository.VideoRepository
 import com.repcheck.features.video.domain.service.*
+import com.repcheck.features.video.domain.service.metrics.VideoProcessingMetrics
 import com.repcheck.features.video.infrastructure.repository.ExposedVideoRepository
 import com.repcheck.features.workout.domain.repository.WorkoutRepository
 import com.repcheck.features.workout.infrastructure.repository.ExposedWorkoutRepository
@@ -17,6 +18,7 @@ import com.repcheck.infrastructure.config.S3Config
 import com.repcheck.infrastructure.s3.S3ClientProvider
 import com.repcheck.infrastructure.s3.S3UploadService
 import io.ktor.server.config.*
+import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.koin.dsl.module
@@ -72,6 +74,22 @@ fun appModule(appConfig: ApplicationConfig) = module {
             videoRepository = get(),
             s3UploadService = get(),
             videoProcessor = get()
+        )
+    }
+
+    // Metrics
+    single {
+        val registry = get<MeterRegistry>()
+        VideoProcessingMetrics(registry)
+    }
+
+    // Video Processing
+    single<VideoProcessingWorker> {
+        VideoProcessingWorker(
+            queueService = get(),
+            videoRepository = get(),
+            videoProcessor = get(),
+            progressTracker = get()
         )
     }
 }
