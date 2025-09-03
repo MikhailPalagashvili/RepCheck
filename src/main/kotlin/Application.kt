@@ -7,6 +7,7 @@ import com.repcheck.features.video.domain.service.VideoService
 import com.repcheck.features.video.presentation.videoRoutes
 import com.repcheck.infrastructure.config.AppConfig
 import com.repcheck.infrastructure.di.appModule
+import com.repcheck.infrastructure.metrics.metricsModule
 import com.repcheck.infrastructure.persistence.db.Database
 import com.repcheck.infrastructure.web.plugins.installMonitoring
 import com.repcheck.infrastructure.web.plugins.installSerialization
@@ -39,7 +40,7 @@ fun Application.module() {
 
     // Install Koin first to get dependencies
     koin {
-        modules(appModule(environment.config), )
+        modules(appModule(environment.config), metricsModule)
     }
 
     // Get dependencies from Koin
@@ -49,7 +50,7 @@ fun Application.module() {
 
     // Configure application features
     configureFeatures()
-    
+
     // Configure authentication before any routes
     install(Authentication) {
         jwt("auth-jwt") {

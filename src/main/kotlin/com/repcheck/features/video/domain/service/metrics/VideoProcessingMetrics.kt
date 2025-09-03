@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Metrics for tracking video processing performance and reliability
  */
-class VideoProcessingMetrics(private val registry: MeterRegistry) {
+class VideoProcessingMetrics(registry: MeterRegistry) {
     // Timers
     private val processingTime = Timer.builder("video.processing.time")
         .description("Time taken to process a video")
